@@ -562,7 +562,7 @@ $spots = Spot::where('status', 1)
 public function edit1($invoiceNumber)
 {
     $bookings = SpotBooking::where('invoice_number', $invoiceNumber)->get();
-// dd($bookings);
+//  dd($bookings);
     if ($bookings->isEmpty()) {
         return redirect()->route('spot-bookings.index')
             ->with('error', 'Booking not found!');
@@ -574,7 +574,7 @@ public function edit1($invoiceNumber)
     $spots = Spot::where('status', 1)->orderBy('spot_order', 'asc')->get();
     $packages = SpotPackage::where('status', 1)->get();
     $company = CompanySetting::where('status', 1)->first();
-
+// dd($packages);
     // Additional Services for this invoice
     $services = DB::table('spot_booking_details')
         ->where('invoice_number', $invoiceNumber)
@@ -583,7 +583,10 @@ public function edit1($invoiceNumber)
     // Calendar data for highlighting
     $calendarData = [];
     $bookedSpots = [];
-    $allBookings = SpotBooking::where('status', '!=', 2)->get();
+    $allBookings = SpotBooking::where('status', '!=', 2)
+    ->where('invoice_number', '!=', $invoiceNumber) // ✅ exclude current invoice
+    ->get();
+    $currentInvoiceSpots = $bookings->pluck('spot_id')->map(fn($id)=> (int)$id)->toArray();
     foreach ($allBookings as $b) {
         $date = $b->booking_date;
         if (!isset($calendarData[$date])) {
@@ -598,6 +601,7 @@ public function edit1($invoiceNumber)
         'booking' => $bookings,
         'firstBooking' => $firstBooking,
         'services' => $services,
+        'currentInvoiceSpots' => $currentInvoiceSpots,
         'discountLimit' => $company->discount_limit ?? 5,
         'multipleSpotDiscountLimit' => $company->multiple_spot_discount_limit ?? 5,
         'spots' => $spots,

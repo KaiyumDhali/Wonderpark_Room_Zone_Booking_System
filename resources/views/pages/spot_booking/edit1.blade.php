@@ -10,6 +10,7 @@
     const MULTIPLE_SPOT_DISCOUNT = {{ $multipleSpotDiscountLimit }};
     const editBooking = @json($firstBooking);
     const editItems = @json($firstBooking->items ?? []);
+    let currentInvoiceSpots = @json($currentInvoiceSpots ?? []);
 </script>
 
 <form action="{{ route('spot-bookings.update1', $firstBooking->invoice_number) }}" method="POST">
@@ -1053,41 +1054,77 @@ document.addEventListener('DOMContentLoaded', function(){
     initDiscountEvents();
     initToggleServices();
     initManualDiscountEvents();
+        // === RESTORE SELECTED SPOTS FOR EDIT MODE ===
 
-    // ===== EDIT MODE =====
-    if(typeof editBooking !== 'undefined' && editBooking){
-
-        const bookingDateStr = editBooking.booking_date;
-
-        if(bookingDateStr){
-            // Set hidden input & text
-            document.getElementById('booking_date').value = bookingDateStr;
-            document.getElementById('selected_date_text').innerText = `(${bookingDateStr})`;
-
-            // Highlight the calendar day
-            const dayCells = document.querySelectorAll('.fc-daygrid-day');
-            dayCells.forEach(cell => {
-                if(cell.dataset.date === bookingDateStr){
-                    cell.classList.add('selected-day');
+        // === RESTORE SELECTED SPOTS FOR EDIT MODE ===
+        if(currentInvoiceSpots.length > 0){
+            currentInvoiceSpots.forEach(spotId => {
+                const spot = spots.find(s => parseInt(s.id) === parseInt(spotId));
+                if(spot && !selectedSpots.find(s => s.id === spot.id)){
+                    selectedSpots.push({
+                        id: spot.id,
+                        title: spot.title,
+                        price: parseFloat(spot.price),
+                        max_capacity: parseInt(spot.max_capacity)
+                    });
                 }
             });
         }
 
-        // Restore selected spots FIRST (important!)
-       editItems.forEach(item=>{
-    if(item.type === 'spot'){
-        const spot = spots.find(s=>parseInt(s.id) === parseInt(item.id)); // ✅
-        if(spot && !selectedSpots.find(s=>s.id===parseInt(spot.id))){
-            selectedSpots.push({
-                id: parseInt(spot.id),       // ✅ ensure number
-                title: spot.title,
-                price: parseFloat(spot.price),
-                max_capacity: parseInt(spot.max_capacity)
+        // এখন call renderSelected & renderSpotsButtons
+        renderSelected();
+        renderSpotsButtons();
+        if(typeof currentInvoiceSpots !== 'undefined' && currentInvoiceSpots.length>0){
+            currentInvoiceSpots.forEach(spotId=>{
+                const spot = spots.find(s=>parseInt(s.id) === parseInt(spotId));
+                if(spot && !selectedSpots.find(s=>s.id === spot.id)){
+                    selectedSpots.push({
+                        id: spot.id,
+                        title: spot.title,
+                        price: parseFloat(spot.price),
+                        max_capacity: parseInt(spot.max_capacity)
+                    });
+                }
             });
         }
-    }
-});
 
+       // তারপর renderSelected & renderSpotsButtons কল দিন
+            renderSelected();
+            renderSpotsButtons();
+                // ===== EDIT MODE =====
+                if(typeof editBooking !== 'undefined' && editBooking){
+
+                    const bookingDateStr = editBooking.booking_date;
+
+                    if(bookingDateStr){
+                        // Set hidden input & text
+                        document.getElementById('booking_date').value = bookingDateStr;
+                        document.getElementById('selected_date_text').innerText = `(${bookingDateStr})`;
+
+                        // Highlight the calendar day
+                        const dayCells = document.querySelectorAll('.fc-daygrid-day');
+                        dayCells.forEach(cell => {
+                            if(cell.dataset.date === bookingDateStr){
+                                cell.classList.add('selected-day');
+                            }
+                        });
+                    }
+
+                    // Restore selected spots FIRST (important!)
+                    editItems.forEach(item=>{
+                    if(item.type === 'spot'){
+                        const spot = spots.find(s=>parseInt(s.id) === parseInt(item.id)); // ✅
+                        if(spot && !selectedSpots.find(s=>s.id===parseInt(spot.id))){
+                            selectedSpots.push({
+                                id: parseInt(spot.id),       // ✅ ensure number
+                                title: spot.title,
+                                price: parseFloat(spot.price),
+                                max_capacity: parseInt(spot.max_capacity)
+                            });
+                        }
+                    }
+                });
+recalcCapacity();
         // THEN render spots for that date
         if(bookingDateStr) renderSpots(bookingDateStr);
 
@@ -1137,10 +1174,11 @@ function renderSpots(dateStr){
 
     // selected spot ids
     const selectedSpotIds = selectedSpots.map(s => parseInt(s.id));
-
+const currentInvoiceSpots = @json($currentInvoiceSpots); // blade e pass করা হয়েছে
 spots.forEach(spot=>{
     const id = parseInt(spot.id);
-    const isSelected = selectedSpots.some(s=>parseInt(s.id) === id);
+    const isSelected = selectedSpots.some(s=>parseInt(s.id) === id)
+        || currentInvoiceSpots.includes(id); // 🔥 add this
 
     const isBookedSpot =
         isFullyBooked ||
@@ -1233,13 +1271,23 @@ function renderPackagesByCapacity(){
     const grid = document.getElementById('spot_packages_grid');
     grid.innerHTML = '';
 
-    const validPackages = packages.filter(p=>parseInt(p.persons) <= totalCapacity);
-    if(validPackages.length===0){
+    let validPackages = packages.filter(p => parseInt(p.persons) <= totalCapacity);
+
+    // ===== EDIT MODE OVERRIDE =====
+    if(typeof editBooking !== 'undefined' && editBooking){
+        const pkg = editItems.find(i => i.type === 'package');
+        if(pkg && !validPackages.find(p => p.id === pkg.id)){
+            const pkgObj = packages.find(p => p.id === pkg.id);
+            if(pkgObj) validPackages.push(pkgObj); // ✅ force add
+        }
+    }
+
+    if(validPackages.length === 0){
         grid.innerHTML = `<div class="text-muted text-center py-5">Select spot(s) to see packages</div>`;
         return;
     }
 
-    validPackages.forEach(pkg=>{
+    validPackages.forEach(pkg => {
         const selected = tickedPackage?.id === pkg.id;
         grid.insertAdjacentHTML('beforeend', `
             <div class="col-md-2">
@@ -1543,7 +1591,8 @@ function validateForm(){
 
     if(!customer || !account || !amount || !date || !saveBtn) return;
 
-    const ok = customer.value && account.value && amount.value && date.value && selectedSpots.length > 0;
+    // selectedSpots.length > 0 condition remove করা হয়েছে
+    const ok = customer.value && account.value && amount.value && date.value;
     saveBtn.disabled = !ok;
 }
 
