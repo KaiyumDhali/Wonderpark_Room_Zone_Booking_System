@@ -1,0 +1,388 @@
+<x-default-layout>
+    <style>
+        .table> :not(caption)>*>* {
+            padding: 0.3rem !important;
+        }
+    </style>
+    <!--begin::Toolbar-->
+    <div id="kt_app_toolbar" class="app-toolbar py-3 py-lg-6">
+        <!--begin::Toolbar container-->
+        <div id="kt_app_toolbar_container" class="app-container  d-flex flex-stack">
+            <!--begin::Page title-->
+            <div class="page-title d-flex flex-column justify-content-center flex-wrap me-3">
+                <!--begin::Title-->
+                <h3>Warehouse</h3>
+                <!--end::Title-->
+            </div>
+            <!--end::Page title-->
+        </div>
+        <!--end::Toolbar container-->
+    </div>
+    <!--end::Toolbar-->
+
+    <!--begin::Content-->
+    <div id="kt_app_content" class="app-content flex-column-fluid">
+        <!--begin::Content container-->
+        <div id="kt_app_content_container" class="app-container ">
+            <!--begin::Products-->
+            <div class="card card-flush">
+                <!--begin::Card header-->
+                <div class="card-header align-items-center py-5 gap-2 gap-md-5">
+                    <!--begin::Card title-->
+                    <div class="card-title">
+                        <!--begin::Search-->
+                        <div class="d-flex align-items-center position-relative my-1">
+                            <!--begin::Svg Icon | path: icons/duotune/general/gen021.svg-->
+                            <span class="svg-icon svg-icon-1 position-absolute ms-4">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <rect opacity="0.5" x="17.0365" y="15.1223" width="8.15546" height="2"
+                                        rx="1" transform="rotate(45 17.0365 15.1223)" fill="currentColor" />
+                                    <path
+                                        d="M11 19C6.55556 19 3 15.4444 3 11C3 6.55556 6.55556 3 11 3C15.4444 3 19 6.55556 19 11C19 15.4444 15.4444 19 11 19ZM11 5C7.53333 5 5 7.53333 5 11C5 14.4667 7.53333 17 11 17C14.4667 17 17 14.4667 17 11C17 7.53333 14.4667 5 11 5Z"
+                                        fill="currentColor" />
+                                </svg>
+                            </span>
+                            <!--end::Svg Icon-->
+                            <input type="text" data-kt-ecommerce-order-filter="search"
+                                class="form-control form-control-sm form-control form-control-sm w-250px ps-14 p-2"
+                                placeholder="Search" />
+                        </div>
+                        <!--end::Search-->
+                        <!--begin::Export buttons-->
+                        <div id="kt_ecommerce_report_customer_orders_export" class="d-none"></div>
+                        <!--end::Export buttons-->
+                    </div>
+                    <!--end::Card title-->
+                    <!--begin::Card toolbar-->
+                    <div class="card-toolbar flex-row-fluid justify-content-end gap-5">
+                        @can('create warehouse')
+                            <a href="#" class="btn btn-sm btn-flex btn-light-primary" data-bs-toggle="modal"
+                                data-bs-target="#kt_modal_new_card">
+                                Add New
+                            </a>
+                        @endcan
+                    </div>
+                    <!--end::Card toolbar-->
+                </div>
+                <!--end::Card header-->
+                <!--begin::Card body-->
+                <div class="card-body pt-0">
+                    <!--begin::Table-->
+                    <table class="table table-striped table-bordered align-middle table-row-dashed fs-7 gy-5 mb-0"
+                        id="kt_ecommerce_report_customer_orders_table">
+                        <!--begin::Table head-->
+                        <thead>
+                            <!--begin::Table row-->
+                            <tr class="text-start fs-7 text-uppercase gs-0">
+                                <th class="min-w-50px"> SL</th>
+                                <th class="min-w-50px"> Name</th>
+                                <th class="min-w-50px"> Code</th>
+                                <th class="min-w-100px"> Description</th>
+                                <th class="min-w-50px"> Status</th>
+                                <th class="min-w-50px"> Done By</th>
+                                @can('write warehouse')
+                                    <th class="text-end min-w-50px">Action</th>
+                                @endcan
+                            </tr>
+                            <!--end::Table row-->
+                        </thead>
+                        <!--end::Table head-->
+                        <!--begin::Table body-->
+                        <tbody class="fw-semibold text-gray-700">
+                            @foreach ($warehouses as $warehouse)
+                                <tr>
+                                    <td>
+                                        {{ $loop->iteration }}
+                                    </td>
+                                    <td>
+                                        {{ $warehouse->name }}
+                                    </td>
+                                    <td>
+                                        {{ $warehouse->code }}
+                                    </td>
+                                    <td>
+                                        {{ $warehouse->description }}
+                                    </td>
+                                    <td>
+                                        <div
+                                            class="badge badge-light-{{ $warehouse->status == 1 ? 'success' : 'info' }}">
+                                            {{ $warehouse->status == 1 ? 'Active' : 'Disabled' }}</div>
+                                    </td>
+                                    <td>
+                                        {{ $warehouse->done_by }}
+                                    </td>
+                                    @can('write warehouse')
+                                        <td class="text-end">
+                                            <form method="POST"
+                                                action="{{ route('warehouse.destroy', $warehouse->id) }}"
+                                                class="delete-product-type-form">
+                                                {{ csrf_field() }}
+                                                {{ method_field('DELETE') }}
+                                                <button type="button" class="btn btn-sm btn-success p-2"
+                                                    data-warehouse="{{ json_encode($warehouse) }}"
+                                                    onclick="openEditModalProductType(this)">
+                                                    <i class="fa fa-pencil text-white px-2"></i>
+                                                </button>
+                                                <button type="button"
+                                                    class="btn btn-sm btn-danger p-2 product-type-destroy"
+                                                    onclick="confirmDelete(this)">
+                                                    <i class="fa fa-trash text-white px-2"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    @endcan
+                                </tr>
+                            @endforeach
+                        </tbody>
+                        <!--end::Table body-->
+                    </table>
+                    <!--end::Table-->
+                </div>
+                <!--end::Card body-->
+            </div>
+            <!--end::Products-->
+        </div>
+        <!--end::Content container-->
+    </div>
+    <!--end::Content-->
+
+    <!--begin::Modal - Create App-->
+    <div class="modal fade" id="kt_modal_new_card" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered mw-650px">
+            <!--begin::Modal content-->
+            <div class="modal-content">
+                <!--begin::Modal header-->
+                <div class="modal-header">
+                    <!--begin::Modal title-->
+                    <h2>Add New Warehouse</h2>
+                    <!--end::Modal title-->
+                    <!--begin::Close-->
+                    <div class="btn btn-sm btn-icon btn-active-color-primary" data-bs-dismiss="modal">
+                        <!--begin::Svg Icon | path: icons/duotune/arrows/arr061.svg-->
+                        <span class="svg-icon svg-icon-1">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <rect opacity="0.5" x="6" y="17.3137" width="16" height="2" rx="1"
+                                    transform="rotate(-45 6 17.3137)" fill="currentColor"></rect>
+                                <rect x="7.41422" y="6" width="16" height="2" rx="1"
+                                    transform="rotate(45 7.41422 6)" fill="currentColor"></rect>
+                            </svg>
+                        </span>
+                        <!--end::Svg Icon-->
+                    </div>
+                    <!--end::Close-->
+                </div>
+                <!--end::Modal header-->
+                <!--begin::Modal body-->
+                <div class="modal-body scroll-y mx-5 mx-xl-15 my-7">
+                    <!--begin::Form-->	
+                    <form id="kt_modal_new_card_form" class="form fv-plugins-bootstrap5 fv-plugins-framework"
+                        method="POST" action="{{ route('warehouse.store') }}" enctype="multipart/form-data">
+                        @csrf
+                        <!--begin::Input group-->
+                        <div class="d-flex flex-column mb-7 fv-row fv-plugins-icon-container">
+                            <!--begin::Label-->
+                            <label class="d-flex align-items-center fs-6 fw-semibold form-label mb-2">
+                                <span class="required">Name</span>
+                            </label>
+                            <!--end::Label-->
+                            <input type="text" class="form-control form-control-sm" name="name">
+                            <div class="fv-plugins-message-container invalid-feedback"></div>
+                        </div>
+                        <div class="d-flex flex-column mb-7 fv-row fv-plugins-icon-container">
+                            <!--begin::Label-->
+                            <label class="d-flex align-items-center fs-6 fw-semibold form-label mb-2">
+                                <span class="required">Code</span>
+                            </label>
+                            <!--end::Label-->
+                            <input type="text" class="form-control form-control-sm" name="code">
+                            <div class="fv-plugins-message-container invalid-feedback"></div>
+                        </div>
+                        <div class="d-flex flex-column mb-7 fv-row fv-plugins-icon-container">
+                            <!--begin::Label-->
+                            <label class="d-flex align-items-center fs-6 fw-semibold form-label mb-2">
+                                <span class="required">Description</span>
+                            </label>
+                            <!--end::Label-->
+                            <textarea name="description" id="description" class="form-control form-select-sm" required>{{ old('description') }}</textarea>
+                            {{-- <input type="text" class="form-control form-control-sm" name="description"> --}}
+                            <div class="fv-plugins-message-container invalid-feedback"></div>
+                        </div>
+
+                        <div class="d-flex flex-column mb-7 fv-row fv-plugins-icon-container">
+                            <label class=" form-label">Status</label>
+                            <select class="form-select form-select-sm" data-control="select2" name="status">
+                                <option value="">--Select Status--</option>
+                                <option value="1" selected>Active</option>
+                                <option value="0">Disable</option>
+                            </select>
+                        </div>
+
+                        <div class="text-center pt-15">
+                            <a href="{{ route('warehouse.index') }}" id="kt_modal_new_card_cancel"
+                                class="btn btn-light me-5">Cancel</a>
+
+                            <button type="submit" id="kt_modal_new_card_submit_store" class="btn btn-primary">
+                                <span class="indicator-label">Submit</span>
+                                <span class="indicator-progress">Please wait...
+                                    <span class="spinner-border spinner-border-sm align-middle ms-2"></span></span>
+                            </button>
+                        </div>
+                        <!--end::Actions-->
+                    </form>
+                    <!--end::Form-->
+                </div>
+                <!--end::Modal body-->
+            </div>
+            <!--end::Modal content-->
+        </div>
+    </div>
+    <!--end::Modal - Create App-->
+
+    <!--begin::Modal - Create App-->
+    <div class="modal fade" id="kt_modal_edit_card" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered mw-650px">
+            <!--begin::Modal content-->
+            <div class="modal-content">
+                <!--begin::Modal header-->
+                <div class="modal-header">
+                    <!--begin::Modal title-->
+                    <h2>Edit Warehouse</h2>
+                    <!--end::Modal title-->
+                    <!--begin::Close-->
+                    <div class="btn btn-sm btn-icon btn-active-color-primary" data-bs-dismiss="modal">
+                        <!--begin::Svg Icon | path: icons/duotune/arrows/arr061.svg-->
+                        <span class="svg-icon svg-icon-1">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <rect opacity="0.5" x="6" y="17.3137" width="16" height="2" rx="1"
+                                    transform="rotate(-45 6 17.3137)" fill="currentColor"></rect>
+                                <rect x="7.41422" y="6" width="16" height="2" rx="1"
+                                    transform="rotate(45 7.41422 6)" fill="currentColor"></rect>
+                            </svg>
+                        </span>
+                        <!--end::Svg Icon-->
+                    </div>
+                    <!--end::Close-->
+                </div>
+                <!--end::Modal header-->
+                <!--begin::Modal body-->
+                <div class="modal-body scroll-y mx-5 mx-xl-15 my-7">
+                    <!--begin::Form-->
+                    <form id="kt_modal_edit_card_form_warehouse"
+                        class="form fv-plugins-bootstrap5 fv-plugins-framework" method="POST"
+                        action="{{ route('warehouse.update', ':productTypeId') }}" enctype="multipart/form-data">
+                        @csrf
+                        @method('PUT')
+                        <div class="form-group mb-7">
+                            <label class="required fs-6 mb-2" for="name">Name</label>
+                            <input type="text" name="name" id="name" class="form-control form-select-sm" value="{{ old('name', $warehouse->name) }}" required>
+                        </div>
+            
+                        <div class="form-group mb-7">
+                            <label class="required fs-6 mb-2" for="code">Code</label>
+                            <input type="text" name="code" id="code" class="form-control form-select-sm" value="{{ old('code', $warehouse->code) }}" required>
+                        </div>
+            
+                        <div class="form-group mb-7">
+                            <label class="required fs-6 mb-2" for="description">Description</label>
+                            <textarea name="description" id="description" class="form-control form-select-sm" required>{{ old('description', $warehouse->description) }}</textarea>
+                        </div>
+                        
+                        <div class="form-group mb-7">
+                            <label class="required fs-6 mb-2" for="status">Status</label>
+                            <select class="form-select form-select-sm" data-control="select2" name="status" id="status" required>
+                                <option value="1" {{ $warehouse->status == 1 ? 'selected' : '' }}>Active</option>
+                                <option value="0" {{ $warehouse->status == 0 ? 'selected' : '' }}>Inactive</option>
+                            </select>
+                        </div>
+                        
+                        <div class="text-center pt-15">
+                            <a href="{{ route('warehouse.index') }}" id="kt_modal_new_card_cancel"
+                                class="btn btn-light me-5">Cancel</a>
+
+                            <button type="submit" id="kt_modal_new_card_submit" class="btn btn-primary">
+                                <span class="indicator-label">Submit</span>
+                                <span class="indicator-progress">Please wait...
+                                    <span class="spinner-border spinner-border-sm align-middle ms-2"></span></span>
+                            </button>
+                        </div>
+                    </form>
+            
+                    {{-- <form id="kt_modal_edit_card_form_warehouse"
+                        class="form fv-plugins-bootstrap5 fv-plugins-framework" method="POST"
+                        action="{{ route('warehouse.update', ':productTypeId') }}" enctype="multipart/form-data">
+                        @csrf
+                        @method('PUT')
+                        <!--begin::Input group-->
+                        <div class="d-flex flex-column mb-7 fv-row fv-plugins-icon-container">
+                            <label class="d-flex align-items-center fs-6 fw-semibold form-label mb-2">
+                                <span class="required">Type Name</span>
+                            </label>
+                            <input type="text" class="form-control form-control-sm" name="type_name">
+                            <div class="fv-plugins-message-container invalid-feedback"></div>
+                        </div>
+
+                        <div class="d-flex flex-column mb-7 fv-row fv-plugins-icon-container">
+                            <label class=" form-label">Status</label>
+                            <select class="form-select form-select-sm" data-control="select2" name="status">
+                                <option value="">--Select Status--</option>
+                                <option value="1" selected>Active</option>
+                                <option value="0">Disable</option>
+                            </select>
+                        </div>
+
+                        <div class="text-center pt-15">
+                            <a href="{{ route('warehouse.index') }}" id="kt_modal_new_card_cancel"
+                                class="btn btn-light me-5">Cancel</a>
+
+                            <button type="submit" id="kt_modal_new_card_submit" class="btn btn-primary">
+                                <span class="indicator-label">Submit</span>
+                                <span class="indicator-progress">Please wait...
+                                    <span class="spinner-border spinner-border-sm align-middle ms-2"></span></span>
+                            </button>
+                        </div>
+
+                        <!--end::Actions-->
+                    </form> --}}
+                    <!--end::Form-->
+                </div>
+                <!--end::Modal body-->
+            </div>
+            <!--end::Modal content-->
+        </div>
+    </div>
+    <!--end::Modal - Create App-->
+
+</x-default-layout>
+
+
+<script type="text/javascript">
+    // warehouse 
+    function openEditModalProductType(button) {
+
+        const productTypeData = JSON.parse(button.getAttribute('data-warehouse'));
+
+        const formAction = $('#kt_modal_edit_card').find('#kt_modal_edit_card_form_warehouse').attr('action');
+        const productTypeId = productTypeData.id;
+        const updatedFormAction = formAction.replace(':productTypeId', productTypeId);
+        $('#kt_modal_edit_card').find('#kt_modal_edit_card_form_warehouse').attr('action', updatedFormAction);
+
+        $('#kt_modal_edit_card').find('input[name="name"]').val(productTypeData.name);
+        $('#kt_modal_edit_card').find('input[name="code"]').val(productTypeData.code);
+        $('#kt_modal_edit_card').find('textarea[name="description"]').val(productTypeData.description);
+        $('#kt_modal_edit_card').find('select[name="status"]').val(productTypeData.status);
+
+        $('#kt_modal_edit_card').modal('show');
+    }
+
+    // SweetAlert2 Confarm message after form on click ========= 
+    document.getElementById("kt_modal_new_card_submit_store").addEventListener('click', function(event) {
+        ConfarmMsg("kt_modal_new_card_form", "Are You sure.. Want to Save?", "save", event)
+    });
+    document.getElementById("kt_modal_new_card_submit").addEventListener('click', function(event) {
+        ConfarmMsg("kt_modal_edit_card_form_warehouse", "Are You sure.. Want to Update?", "Update", event)
+    });
+    
+</script>

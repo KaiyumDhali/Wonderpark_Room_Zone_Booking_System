@@ -1,0 +1,329 @@
+<x-default-layout>
+    <style>
+    .card .card-header {
+        min-height: 40px;
+    }
+
+    .table> :not(caption)>*>* {
+        padding: 0.3rem !important;
+    }
+    </style>
+    <style>
+        .dataTables_filter {
+            float: right;
+        }
+
+        .dataTables_buttons {
+            float: left;
+        }
+
+        .bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+    </style>
+    <div class="container-fluid">
+        <!-- Page Heading -->
+        @if($errors->any())
+        <div class="alert alert-danger">
+            <ul>
+                @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+        @endif
+    </div>
+
+    @if($production)
+    <div class="row p-5 pt-0">
+        <!-- Produceable Products Content -->
+        <div class="col-md-12">
+            <div class="row px-5">
+                <div class="col-md-12 card shadow">
+                    <div class="card-body py-3">
+                        <div class="row">
+                            <div class="col-md-6 ps-0 pe-5 mx-0">
+                                <div class="d-sm-flex align-items-center justify-content-between">
+                                    <h1 class="h3 mb-0 text-gray-800">{{ __(' Product to be Produced ') }}</h1>
+                                </div>
+                                <table class="table table-striped table-bordered mt-4 pe-5">
+                                    <thead>
+                                        <tr class="text-center">
+                                            <th style="width: 100px">Product ID</th>
+                                            <th>Product Name</th>
+                                            <th style="width: 100px">Unit</th>
+                                            <th style="width: 100px">Quantity</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="fw-semibold text-gray-600">
+                                        <tr>
+                                            <td class="text-center">{{$production->id}}</td>
+                                            <td class="text-left">{{$production->product->product_name}}</td>
+                                            <td class="text-center">{{$production->unit->unit_name}}</td>
+                                            <td class="text-center">{{$production->quantity}}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="col-md-6 py-5 px-0 mx-0" style="text-align: right">
+                                <a href="{{ route('billofmaterials_pdf', $production->id) }}" class="btn btn-sm btn-primary px-5 my-3" style="" target="_blank">{{ __('PDF Download') }}</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-12 p-5">
+            <div class="row">
+                <!-- Consumable Products Content -->
+                <div class="col-md-6">
+                    <div class="card shadow px-10">
+                        <div class="d-sm-flex align-items-center justify-content-between pt-3">
+                            <h1 class="h3 mb-0 text-gray-800">Requisition items: </h1>
+                        </div>
+                        <table class="table table-striped table-bordered mt-4">
+                            <thead>
+                                <tr class="text-center">
+                                    <th style="width:90px">Material ID</th>
+                                    <th>Material Name</th>
+                                    <th style="width:70px">Unit</th>
+                                    <th style="width:90px">Quantity</th>
+                                </tr>
+                            </thead>
+                            <tbody class="fw-semibold text-gray-600">
+                                @foreach ($consumeDetails as $consumeDetail)
+                                <tr>
+                                    <td class="text-center">{{ $consumeDetail->product->id }}</td>
+                                    <td class="text-left">{{ $consumeDetail->product->product_name }}</td>
+                                    <td class="text-center">{{ $consumeDetail->unit->unit_name }}</td>
+                                    <td class="text-center">{{ $consumeDetail->quantity }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- By Products Content -->
+                <div class="col-md-6">
+                    <div class="card shadow px-10">
+                        <div class="d-sm-flex align-items-center justify-content-between pt-3">
+                            <h1 class="h3 mb-0 text-gray-800">By Product / Wastage Product:</h1>
+                        </div>
+                        <table class="table table-striped table-bordered mt-4">
+                            <thead>
+                                <tr class="text-center">
+                                    <th style="width:90px">Material ID</th>
+                                    <th>Material Name</th>
+                                    <th style="width:70px">Unit</th>
+                                    <th style="width:90px">Quantity</th>
+                                </tr>
+                            </thead>
+                            <tbody class="fw-semibold text-gray-600">
+                                @foreach ($wastageDetails as $wastageDetail)
+                                <tr>
+                                    <td class="text-center">{{ $wastageDetail->product->id }}</td>
+                                    <td class="text-left">{{ $wastageDetail->product->product_name }}</td>
+                                    <td class="text-center">{{ $wastageDetail->unit->unit_name }}</td>
+                                    <td class="text-center">{{ $wastageDetail->quantity }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex justify-content-end">
+            <a class="btn btn-sm btn-success mt-5 me-5" href="{{ route('billofmaterials.index') }}">Back Bill of Materials List</a>
+        </div>
+    </div>
+    @endisset
+    
+    
+</x-default-layout>
+
+{{-- <script type="text/javascript">
+    $("#searchBtn").prop('disabled', true);
+    $('#invoice_list').on('change', function() {
+        $("#searchBtn").prop('disabled', false);
+    });
+
+    // get startDate and endDate
+    var startDate = 0;
+    var endDate = 0;
+
+    // start_date on change action
+    $('#start_date').on('change', function() {
+        $("#invoice_list").empty();
+        // get on change date
+        startDate = $('#start_date').val();
+        endDate = $('#end_date').val();
+
+        const start_date = new Date(startDate);
+        const end_date = new Date(endDate);
+        // Check if the start date is after the end date
+        if (start_date > end_date) {
+            alert('The start date cannot be after the end date.');
+            $('#start_date').val(endDate);
+            startDate = $('#start_date').val();
+        }
+        // InvoiceList Call Data
+        InvoiceList(startDate, endDate);
+    });
+
+    // end_date on change action
+    $('#end_date').on('change', function() {
+        $("#invoice_list").empty();
+        // get on change date
+        startDate = $('#start_date').val();
+        endDate = $('#end_date').val();
+
+        const start_date = new Date(startDate);
+        const end_date = new Date(endDate);
+        // Check if the start date is after the end date
+        if (start_date > end_date) {
+            alert('The end date cannot be before the start date.');
+            $('#end_date').val(startDate);
+            endDate = $('#start_date').val();
+        }
+        // InvoiceList Call Data
+        InvoiceList(startDate, endDate);
+    });
+
+    var name = 'Perfume PLC';
+    name += `\n Requisition List`;
+    var reportTittle = name;
+
+    var dataTableOptions = {
+        dom: '<"top"fB>rt<"bottom"lip>',
+        buttons: [{
+            extend: 'collection',
+            text: 'Export',
+            className: 'btn btn-sm btn-light-primary',
+
+            buttons: [
+                {
+                    extend: 'excel',
+                    text: 'Excel',
+                    title: `${reportTittle}`,
+                    className: 'btn btn-sm btn-light-primary'
+                },
+                {
+                    extend: 'copy',
+                    text: 'Copy',
+                    title: `${reportTittle}`,
+                    className: 'btn btn-sm btn-light-primary'
+                },
+                {
+                    extend: 'csv',
+                    text: 'CSV',
+                    title: `${reportTittle}`,
+                    className: 'btn btn-sm btn-light-primary'
+                },
+                {
+                    extend: 'pdf',
+                    text: 'PDF',
+                    title: `${reportTittle}`,
+                    className: 'btn btn-sm btn-light-primary'
+                },
+                {
+                    extend: 'print',
+                    text: 'Print',
+                    title: `${reportTittle}`,
+                    className: 'btn btn-sm btn-light-primary'
+                }
+            ]
+        }],
+        paging: true,
+        ordering: false,
+        searching: true,
+        responsive: false,
+        lengthMenu: [10, 25, 50, 100],
+        pageLength: 25,
+        language: {
+            lengthMenu: 'Show _MENU_ entries',
+            search: 'Search:',
+            paginate: {
+                first: 'First',
+                last: 'Last',
+                next: 'Next',
+                previous: 'Previous'
+            }
+        }
+    };
+    var table = $('#employee_table').DataTable(dataTableOptions);
+
+    // received startDate and endDate then InvoiceList get data 
+    function InvoiceList(startDate, endDate) {
+        let url;
+        url = "{{ route('requisition_invoice_date_search', ['startDate' => ':startDate', 'endDate' => ':endDate']) }}";
+        url = url.replace(':startDate', startDate);
+        url = url.replace(':endDate', endDate);
+        console.log(url);
+        // if (startDate && endDate) {
+            $.ajax({
+                url: url,
+                type: "GET",
+                data: {
+                    "_token": "{{ csrf_token() }}"
+                },
+                dataType: "json",
+                success: function(data) {
+                    console.log(data);
+                    table.clear().draw();
+                    $('#invoice_list').empty(); // Clear previous options
+                    $('#invoice_list').append('<option selected disabled>Select Invoice</option>');
+
+                    if (data) {
+                        $('#jsdataerror').text('');
+                        $.each(data, function(key, value) {
+                            let invoiceNo = value[0].invoice_no;
+                            let statusText = value[0].status === 0 ? 'Pending' : 'Approved';
+
+                            $('#invoice_list').append(`<option value="${invoiceNo}">${invoiceNo}</option>`);
+
+                            let showUrl = `{{ route('requisition_Invoice_report_search', ['invoiceNo' => '_invoiceNo_']) }}`.replace('_invoiceNo_', invoiceNo);
+
+                            let approved = `
+                                <td class="text-right">
+                                    <a href="${showUrl}" class="btn btn-sm btn-success hover-scale p-2" data-bs-toggle="tooltip" data-bs-placement="top" title="Approved">
+                                        <i class="bi bi-check2-square fs-2 ms-1"></i>
+                                    </a>
+                                </td>
+                            `;
+                            let view = `
+                                <td class="text-right">
+                                    <a href="${showUrl}" class="btn btn-sm btn-info hover-scale p-2" data-bs-toggle="tooltip" data-bs-placement="top" title="View">
+                                        <i class="bi bi-eye fs-2 ms-1"></i>
+                                    </a>
+                                </td>
+                            `;
+                            let rowIndex = table.rows().count() + 1;
+                            // Add row to DataTable
+                            table.row.add([rowIndex, invoiceNo, statusText, approved, view]).draw();
+                        });
+
+                        // Enable DataTable buttons
+                        table.buttons().enable();
+                    } else {
+                        $('#jsdataerror').text('No records found');
+                        console.log('No records found');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.log(xhr.responseText);
+                    $('#jsdataerror').text('Error occurred while fetching data');
+                }
+            });
+        // } else {
+        //     $('#jsdataerror').text('Invalid date range');
+        // }
+    }
+
+    InvoiceList(startDate, endDate);
+
+</script> --}}

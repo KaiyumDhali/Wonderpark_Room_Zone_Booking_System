@@ -1,0 +1,940 @@
+<x-default-layout>
+    <style>
+        .card .card-header {
+            min-height: 40px;
+        }
+
+        .table> :not(caption)>*>* {
+            padding: 0.3rem !important;
+        }
+    </style>
+    <div class="container-fluid">
+        <!-- Page Heading -->
+        @if ($errors->any())
+            <div class="alert alert-danger">
+                <ul>
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+        <div class="row ">
+            <!-- Product Add to card Content Row -->
+            <div class="col-md-8">
+                <form class="p-0 m-0" id="purchaseform" method="POST" action="{{ route('purchase.store') }}"
+                    enctype="multipart/form-data">
+                    @csrf
+                    <div class="row">
+                        {{-- select product --}}
+                        <div class="col-md-12 card shadow">
+                            <div class="card-header px-2 mx-0">
+                                <div class="d-sm-flex align-items-center justify-content-between">
+                                    <h1 class="h3 mb-0 text-gray-800">{{ __('Purchase') }}</h1>
+                                </div>
+                            </div>
+                            <div class="card-body py-3 px-2 mx-0">
+                                <div class="col-md-12 pb-3">
+                                    <div class="row">
+                                        <div class="form-group col-md-2 pt-0 pb-2">
+                                            <label class="required">{{ __('Purchase Date') }}</label>
+                                            <input type="date"
+                                                class="form-control form-control-sm form-control-solid"
+                                                id="voucher_date" name="voucher_date"
+                                                value="" required/>
+                                        </div>
+                                        <div class="form-group col-md-4">
+                                            <div class="card-body px-0 pb-2 pt-0 d-flex align-items-center">
+                                                <div class="flex-grow-1">
+                                                    <label>{{ __('Select Supplier') }}</label>
+                                                    <select id="changeSupplier" class="form-control form-control-sm"
+                                                        name="supplier_id" data-control="select2"
+                                                        data-placeholder="Select Supplier" required>
+                                                        <option></option>
+                                                        @foreach ($supplierAccounts as $supplierAccount)
+                                                            <option value="{{ $supplierAccount->id }}">
+                                                                {{ $supplierAccount->account_name }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <a href="#"
+                                                    class="btn btn-sm btn-flex btn-light-primary ms-2 mt-5"
+                                                    data-bs-toggle="modal" data-bs-target="#add_supplier_modal">
+                                                    Add
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div class="form-group col-md-3 d-none supplierInfo">
+                                            <div class="card mt-5 p-2">
+                                                <label for="" id="supplierAdd4"></label>
+                                            </div>
+                                        </div>
+                                        <div class="form-group col-md-3 d-none supplierInfo">
+                                            <div class="card mt-5 p-2">
+                                                <label for="" id="supplierAdd3"></label>
+                                            </div>
+                                        </div>
+                                        {{-- <div class="form-group col-md-2">
+                                            <div class="card mt-5 p-2 d-none supplierInfo">
+                                                <label for="" id="supplierAdd"></label>
+                                            </div>
+                                        </div>
+                                        <div class="form-group col-md-2">
+                                            <div class="card mt-5 p-2 d-none supplierInfo">
+                                                <label for="" id="supplierAdd2"></label>
+                                            </div>
+                                        </div> --}}
+                                        <div class="form-group col-md-6 pt-0 pb-2">
+                                            <label>{{ __('Select Product') }}</label>
+                                            <select id="changeProduct" class="form-select form-select-sm"
+                                                name="product_id" data-control="select2" data-hide-search="false">
+                                                <option selected disabled>Select Product</option>
+                                                @foreach ($products as $product)
+                                                    <option value="{{ $product->id }}">
+                                                        Name: {{ $product->product_name }}
+                                                        (Code: {{ $product->product_code }})
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="form-group col-md-4 my-3">
+                                            <label for="order">{{ __('Product Name') }}</label>
+                                            <input type="text"
+                                                class="form-control form-control-sm form-control-solid" readonly
+                                                id="product_name" name="product_name " />
+                                        </div>
+                                        <div class="form-group col-md-2 my-3">
+                                            <label for="order">{{ __('Code') }}</label>
+                                            <input type="text"
+                                                class="form-control form-control-sm form-control-solid" readonly
+                                                id="product_code" name="product_code " />
+                                        </div>
+                                        <div class="form-group col-md-2 my-3">
+                                            <label for="order">{{ __('Unit Name') }}</label>
+                                            <input type="text"
+                                                class="form-control form-control-sm form-control-solid" readonly
+                                                id="purchase_unit" name="purchase_unit " />
+                                        </div>
+                                        <div class="form-group col-md-2 my-3">
+                                            <label for="order">{{ __('Price (Per Unit)') }}</label>
+                                            <input type="text" class="form-control form-control-sm"
+                                                id="purchase_price" name="purchase_price"
+                                                oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');">
+                                        </div>
+                                        <div class="form-group col-md-2 my-3">
+                                            <label for="order">{{ __('Present Stock') }}</label>
+                                            <input type="text"
+                                                class="form-control form-control-sm form-control-solid"
+                                                id="present_stock" name="present_stock" readonly />
+                                        </div>
+                                        <div class="form-group col-md-2 my-3">
+                                            <label for="order">{{ __('Quantity') }}</label>
+                                            <input type="text" class="form-control form-control-sm"
+                                                id="productQuantity" name="quantity"
+                                                oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');">
+                                        </div>
+                                        <div class="form-group col-md-2 my-3">
+                                            <label for="order">{{ __('Amount') }}</label>
+                                            <input type="text"
+                                                class="form-control form-control-sm form-control-solid"
+                                                id="quantityAmount" name="Amount" value=0 readonly />
+                                        </div>
+
+                                        <div class="form-group col-md-2 my-3">
+                                            <label class="">Discount Type</label>
+                                            <select class="form-select form-select-sm" name="type"
+                                                id="percentageType">
+                                                <option value="">--Select Type--</option>
+                                                <option value="1" selected>Fixed</option>
+                                                <option value="2">Percentage</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="form-group col-md-2 d-none my-3" id="percentageInputContainer">
+                                            <label class=""><span class="">Percentage </span></label>
+                                            <input type="text" class="form-control form-control-sm"
+                                                name="percentage" id="percentageInput"
+                                                oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');">
+                                        </div>
+
+                                        <div class="form-group col-md-2 my-3" id="amountInputContainer">
+                                            <label class=""><span>Discount </span> </label>
+                                            <input type="text" class="form-control form-control-sm" id="discount"
+                                                name="discount"
+                                                oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');">
+                                        </div>
+                                        <div class="form-group col-md-2 my-3">
+                                            <button type="button" id="addProduct"
+                                                class="btn btn-sm btn-primary px-5 mt-6">{{ __('Add to Cart') }}</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {{-- add to product --}}
+                        <div class="col-md-12 card shadow my-5 px-5">
+                            <div id="cart_product">
+                                <table id="product_add" class="table table-bordered mt-4">
+                                    <tr class="text-center">
+                                        <th>SL</th>
+                                        <th>Product Name</th>
+                                        <th>Unit</th>
+                                        <th class="w-100px">Quantity</th>
+                                        <th>Purchase Price</th>
+                                        <th>Discount</th>
+                                        <th>Amount</th>
+                                        <th></th>
+                                    </tr>
+                                </table>
+                                <table id="sumAmountShow" class="table table-bordered">
+
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+            </div>
+            <!--  Purchase Summary Content Row -->
+            <div class="col-md-4">
+                <div class="card shadow px-10 pb-8 ms-0 ms-md-5">
+                    <div class="card-header my-3 mx-0 px-2">
+                        <div class="d-sm-flex align-items-center justify-content-between">
+                            <h1 class="h3 mb-0 text-gray-800">{{ __('Purchase Summary') }}</h1>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="order">{{ __('Net Total Amount') }}</label>
+                        <input type="number" class="form-control form-control-sm form-control-solid"
+                            id="netTotalAmount" name="netTotalAmount" value=0 readonly />
+                    </div>
+                    {{-- <div class="card-body px-0 pb-2 d-flex align-items-center">
+                        <div class="flex-grow-1 pt-2">
+                            <label>{{ __('Select Supplier') }}</label>
+                            <select id="changeSupplier" class="form-control form-control-sm" name="supplier_id"
+                                data-control="select2" data-placeholder="Select Supplier" required>
+                                <option></option>
+                                @foreach ($supplierAccounts as $supplierAccount)
+                                    <option value="{{ $supplierAccount->id }}">
+                                        {{ $supplierAccount->account_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <a href="#" class="btn btn-sm btn-flex btn-light-primary ms-2 mt-8"
+                            data-bs-toggle="modal" data-bs-target="#add_supplier_modal">
+                            Add
+                        </a>
+                    </div> --}}
+
+                    {{-- <div class="card p-5 mb-4 d-none" id="supplierInfo">
+                        <label for="" id="supplierAdd4"></label>
+                        <label for="" id="supplierAdd5"></label>
+                        <label for="" id="supplierAdd"></label>
+                        <label for="" id="supplierAdd2"></label>
+                        <label for="" id="supplierAdd3"></label>
+                    </div> --}}
+
+                    <div class="form-group">
+                        <label for="order">{{ __('Supplier Invoice No.') }}</label>
+                        <input type="text" class="form-control form-control-sm" id=""
+                            name="supplier_invoice_no" value="" />
+                    </div>
+
+                    <div class="card card-flush h-xl-100 my-3">
+                        <!--begin::Header-->
+                        <div class="card-header py-0">
+                            <!--begin::Title-->
+                            <h3 class="card-title align-items-start flex-column">
+                                <span class="card-label fw-bold text-gray-800">Payment Method</span>
+                            </h3>
+                            <!--end::Title-->
+                        </div>
+                        <!--end::Header-->
+                        <!--begin::Body-->
+                        <div class="card-body pt-0">
+                            <!--begin::Nav-->
+                            <ul class="nav nav-pills nav-pills-custom my-0">
+                                <!--begin::Item-->
+                                <li class="nav-item my-3 me-3 me-lg-6">
+                                    <!--begin::Link-->
+                                    <a class="paymentType nav-link btn btn-outline btn-flex btn-color-muted btn-active-color-primary flex-column overflow-hidden w-60px h-65px pt-3 pb-2 active"
+                                        id="kt_stats_widget_16_tab_link_1" data-bs-toggle="pill"
+                                        href="#kt_stats_widget_16_tab_1" data-value="Cash">
+                                        <!--begin::Icon-->
+                                        <div class="nav-icon">
+                                            <i class="fa-solid fa-bangladeshi-taka-sign pb-2"
+                                                style="font-size: 20px;"></i>
+                                        </div>
+                                        <!--end::Icon-->
+                                        <!--begin::Title-->
+                                        <span class="nav-text text-gray-800 fw-bold fs-7 lh-1">Cash</span>
+                                        <!--end::Title-->
+                                        <!--begin::Bullet-->
+                                        <span
+                                            class="bullet-custom position-absolute bottom-0 w-100 h-4px bg-primary"></span>
+                                        <!--end::Bullet-->
+                                    </a>
+                                    <!--end::Link-->
+                                </li>
+                                <!--end::Item-->
+                                <!--begin::Item-->
+                                <li class="nav-item my-3 me-3 me-lg-6">
+                                    <!--begin::Link-->
+                                    <a class="paymentType nav-link btn btn-outline btn-flex btn-color-muted btn-active-color-primary flex-column overflow-hidden w-60px h-65px pt-3 pb-2"
+                                        id="kt_stats_widget_16_tab_link_2" data-bs-toggle="pill"
+                                        href="#kt_stats_widget_16_tab_2" data-value="Bank">
+                                        <!--begin::Icon-->
+                                        <div class="nav-icon">
+                                            <i class="fa-solid fa-building-columns pb-2" style="font-size: 20px;"></i>
+                                        </div>
+                                        <!--end::Icon-->
+                                        <!--begin::Title-->
+                                        <span class="nav-text text-gray-800 fw-bold fs-7 lh-1">Bank</span>
+                                        <!--end::Title-->
+                                        <!--begin::Bullet-->
+                                        <span
+                                            class="bullet-custom position-absolute bottom-0 w-100 h-4px bg-primary"></span>
+                                        <!--end::Bullet-->
+                                    </a>
+                                    <!--end::Link-->
+                                </li>
+                                <!--end::Item-->
+                                <!--begin::Item-->
+                                <li class="nav-item my-3 me-3 me-lg-6">
+                                    <!--begin::Link-->
+                                    <a class="paymentType nav-link btn btn-outline btn-flex btn-color-muted btn-active-color-primary flex-column overflow-hidden w-60px h-65px pt-3 pb-2"
+                                        id="kt_stats_widget_16_tab_link_3" data-bs-toggle="pill"
+                                        href="#kt_stats_widget_16_tab_3" data-value="mBank">
+                                        <!--begin::Icon-->
+                                        <i class="fa-solid fa-mobile pb-2" style="font-size: 20px;"></i>
+                                        <!--end::Icon-->
+                                        <!--begin::Title-->
+                                        <span class="nav-text text-gray-800 fw-bold fs-7 lh-1">mBank</span>
+                                        <!--end::Title-->
+                                        <!--begin::Bullet-->
+                                        <span
+                                            class="bullet-custom position-absolute bottom-0 w-100 h-4px bg-primary"></span>
+                                        <!--end::Bullet-->
+                                    </a>
+                                    <!--end::Link-->
+                                </li>
+                                <!--end::Item-->
+                            </ul>
+                            <!--end::Nav-->
+                            <!--begin::Tab Content-->
+                            <div class="tab-content">
+                                {{-- <div class="form-group">
+                                    <label>{{ __('Receive Account') }}</label>
+                                    <select id="changeAccountsName" class="form-control form-control-sm" name="receive_account"
+                                        data-control="select2" data-placeholder="Select Payment Account">
+                                        <option></option>
+                                        @foreach ($toAccounts as $toAccount)
+                                            <option value="{{ $toAccount->id }}">
+                                                {{ $toAccount->account_name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div> --}}
+
+                                <div class="form-group">
+                                    <label>{{ __('From Account') }}</label>
+                                    <select id="changeAccountsName" class="form-control form-control-sm" name="pay_account"
+                                        data-control="select2" data-placeholder="Select Payment Account">
+                                        <option></option>
+                                        @foreach ($fromAccounts as $fromAccount)
+                                            <option value="{{ $fromAccount->id }}">
+                                                {{ $fromAccount->account_name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <!--begin::Tap cash pane-->
+                                {{-- <div class="tab-pane fade show active" id="kt_stats_widget_16_tab_1">
+                                    
+                                </div> --}}
+                                <!--end::Tap pane-->
+                                <!--begin::Tap bank pane-->
+                                <div class="tab-pane fade" id="kt_stats_widget_16_tab_2">
+                                    {{-- <div class="form-group">
+                                        <label>{{ __('Select Bank') }}</label>
+                                        <select id="" class="form-control form-control-sm" name="bank_name"
+                                            data-control="select2" data-placeholder="Select Bank">
+                                            <option value="">Select Bank</option>
+                                            <option value="Shahjalal Islami Bank Limited">Shahjalal Islami Bank
+                                                Limited</option>
+                                            <option value="Islami Bank Bangladesh Ltd">Islami Bank Bangladesh Ltd
+                                            </option>
+                                            <option value="Dutch Bangla Bank">Dutch Bangla Bank</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>{{ __('Select Branch') }}</label>
+                                        <select id="" class="form-control form-control-sm" name="branch_name"
+                                            data-control="select2" data-placeholder="Select Branch">
+                                            <option value="">Select Branch</option>
+                                            <option value="Gulshan Branch">Gulshan Branch</option>
+                                            <option value="Dhanmondi Branch">Dhanmondi Branch</option>
+                                            <option value="Banani Branch">Banani Branch</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="returnAmount">A/C No</label>
+                                        <input type="text" class="form-control form-control-sm" name="ac_no"
+                                            value="0"
+                                            oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');" />
+                                    </div> --}}
+                                    <div class="form-group">
+                                        <label>{{ __('Select Type') }}</label>
+                                        <select id="chequeType" class="form-control form-control-sm" name="cheque_type"
+                                            data-control="select2" data-placeholder="Select Cheque Type">
+                                            <option value="">Select Type</option>
+                                            <option value="Cheque">Cheque </option>
+                                            <option value="Cash Deposit">Cash Deposit </option>
+                                            <option value="Online">Online</option>
+                                            <option value="CHT">CHT</option>
+                                            <option value="RTGS">RTGS</option>
+                                        </select>
+                                    </div>
+                                    <div id="bankInfo" class="d-none">
+                                        <div class="form-group">
+                                            <label for="returnAmount">Cheque No</label>
+                                            <input type="text" class="form-control form-control-sm" name="cheque_no"
+                                                value="0" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="">Cheque Date</label>
+                                            <input type="date" class="form-control form-control-sm" name="cheque_date" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <!--end::Tap pane-->
+                                <!--begin::Tap mobile bank pane-->
+                                <div class="tab-pane fade" id="kt_stats_widget_16_tab_3">
+                                    <div class="form-group">
+                                        <label>{{ __('Select Mobile Bank') }}</label>
+                                        <select id="" class="form-control form-control-sm"
+                                            name="mobile_bank_name" data-control="select2"
+                                            data-placeholder="Select Mobile Bank">
+                                            <option value="">Select Mobile Bank</option>
+                                            <option value="bKash">bKash</option>
+                                            <option value="Nagad">Nagad</option>
+                                            <option value="Rocket">Rocket</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="">Mobile Number</label>
+                                        <input type="text" class="form-control form-control-sm" name="mobile_number" value="0" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="">Transaction ID</label>
+                                        <input type="text" class="form-control form-control-sm" name="transaction_id"
+                                            value="0" />
+                                    </div>
+                                </div>
+                                <!--end::Tap pane-->
+    
+                                <div class="form-group">
+                                    <label for="givenAmount">{{ __('Paid Amount') }}</label>
+                                    <input type="text" class="form-control form-control-sm" id="givenAmount"
+                                        name="givenAmount" value="0"
+                                        oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');">
+                                </div>
+                                <div class="form-group">
+                                    <label for="returnAmount"><span id="dueOrReturn"></span> Amount</label>
+                                    <input type="number" class="form-control form-control-sm form-control-solid"
+                                        id="returnAmount" name="returnAmount" value="0" readonly />
+                                </div>
+                            </div>
+                            <!--end::Tab Content-->
+                        </div>
+                        <!--end: Card Body-->
+                    </div>
+                    <div class="form-group">
+                        <label for="remarks">{{ __('Remarks') }}</label>
+                        <input type="text" class="form-control form-control-sm" id="remarks" name="remarks" />
+                    </div>
+                    <button type="submit" id=""
+                        class="btn btn-sm btn-success px-5 mt-5">{{ __('Purchase') }}</button>
+                </div>
+            </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- add new customer modal --}}
+    <div class="modal fade" id="add_supplier_modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered mw-650px">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Add Supplier</h2>
+                    <div class="btn btn-sm btn-icon btn-active-color-primary" data-bs-dismiss="modal">
+                        <i style="font-size: 20px" class="fas fa-times"></i>
+                    </div>
+                </div>
+                <div class="modal-body scroll-y mx-5 mx-xl-15 my-5">
+                    <form id="kt_ecommerce_add_category_form"
+                        class="form d-flex flex-column flex-lg-row fv-plugins-bootstrap5 fv-plugins-framework"
+                        method="POST" action="{{ route('suppliers.store') }}" enctype="multipart/form-data">
+                        @csrf
+
+                        <!--begin::Main column-->
+                        <div class="d-flex flex-column flex-row-fluid gap-7 gap-lg-10">
+                            <!--begin::General options-->
+                            <div class="row">
+                                <div class="col-12 col-md-6">
+                                    <div class="card-body pt-0 pb-3">
+                                        <div class="fv-row fv-plugins-icon-container">
+                                            <label class="form-label">Supplier Code</label>
+                                            <input type="text" name="supplier_code"
+                                                class="form-control form-control-sm mb-2" placeholder="Supplier Code"
+                                                value="">
+                                            <div class="fv-plugins-message-container invalid-feedback"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <div class="card-body pt-0 pb-3">
+                                        <div class="fv-row fv-plugins-icon-container">
+                                            <label class="required form-label">Supplier Name</label>
+                                            <input type="text" name="supplier_name"
+                                                class="form-control form-control-sm mb-2" placeholder="Supplier Name"
+                                                value="" required>
+                                            <input type="text" class="form-control form-control-sm"
+                                                name="sumite_type" value="1" hidden>
+                                            <div class="fv-plugins-message-container invalid-feedback"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <div class="card-body pt-0 pb-3">
+                                        <div class="fv-row fv-plugins-icon-container">
+                                            <label class="required form-label">Supplier Mobile</label>
+                                            <input type="text" name="supplier_mobile"
+                                                class="form-control form-control-sm mb-2"
+                                                placeholder="Supplier Mobile" value="" required>
+                                            <div class="fv-plugins-message-container invalid-feedback"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <div class="card-body pt-0 pb-3">
+                                        <div class="fv-row fv-plugins-icon-container">
+                                            <label class=" form-label">Supplier Email</label>
+                                            <input type="text" name="supplier_email"
+                                                class="form-control form-control-sm mb-2" placeholder="Supplier Email"
+                                                value="">
+                                            <div class="fv-plugins-message-container invalid-feedback"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <div class="card-body pt-0 pb-3">
+                                        <div class="fv-row fv-plugins-icon-container">
+                                            <label class="form-label">Supplier Address</label>
+                                            <input type="text" name="supplier_address"
+                                                class="form-control form-control-sm mb-2"
+                                                placeholder="Supplier Address" value="">
+                                            <div class="fv-plugins-message-container invalid-feedback"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <div class="card-body pt-0 pb-3">
+                                        <div class="fv-row fv-plugins-icon-container">
+                                            <label class=" form-label">Status</label>
+                                            <select class="form-select form-select-sm" name="status">
+                                                <option value="">--Select Status--</option>
+                                                <option value="1" selected>Active</option>
+                                                <option value="0">Disable</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                            <!--end::General options-->
+                            <div class="text-center pt-5">
+                                <button class="btn btn-sm btn-success me-5" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" id="kt_ecommerce_add_category_submit"
+                                    class="btn btn-sm btn-primary ">
+                                    <span class="indicator-label">Save</span>
+                                    <span class="indicator-progress">Please wait...
+                                        <span class="spinner-border spinner-border-sm align-middle ms-2"></span></span>
+                                </button>
+                                <!--end::Button-->
+                            </div>
+                        </div>
+                        <!--end::Main column-->
+                    </form>
+                    <!--end::Form-->
+                </div>
+                <!--end::Modal body-->
+            </div>
+            <!--end::Modal content-->
+        </div>
+    </div>
+    <!--end::Unit Modal - Create App-->
+
+</x-default-layout>
+
+<script type="text/javascript">
+    document.getElementById("purchaseform").addEventListener("keydown", function(event) {
+        // Check if the pressed key is Enter
+        if (event.key === "Enter") {
+            // Prevent default form submission
+            event.preventDefault();
+        }
+    });
+
+    // Function to fetch product details based on selected product ID
+    function fetchProductDetails(productID) {
+        $.ajax({
+            url: 'productDetails/' + productID,
+            type: "GET",
+            data: {
+                "_token": "{{ csrf_token() }}"
+            },
+            dataType: "json",
+            success: function(data) {
+                if (data) {
+                    $('#discount').val('');
+                    $('#percentageInput').val('');
+                    $('#percentageType').val('1');
+                    $('#percentageInputContainer').addClass('d-none');
+                    $('#discount').prop('readonly', false);
+
+                    let product = data[0];
+                    let present_stock = (product.product_stock_sum_stock_in_quantity - product
+                        .product_stock_sum_stock_out_quantity).toFixed(2);
+
+                    $('#product_name').val(product.product_name);
+                    $('#product_code').val(product.product_code);
+                    $('#purchase_unit').val(product.unit.unit_name);
+                    $('#purchase_price').val(product.purchase_price);
+                    $('#present_stock').val(present_stock);
+                    $('#productQuantity').val(product.pack_size);
+                    onChangeCalculateTotalAmount()
+                    // $('#quantityAmount').val(product.pack_size * product.purchase_price);
+                    // product focus
+                    $('#productQuantity').focus();
+                }
+            },
+            error: function() {
+                console.error("Error fetching product details");
+            }
+        });
+    }
+    // Event handler for when the product selection changes
+    $('#changeProduct').on('change', function() {
+        let productID = $(this).val();
+        if (productID) {
+            fetchProductDetails(productID);
+        }
+    });
+
+    // Event handler for adding the selected product to the cart
+    let id = 1;
+    $('#addProduct').on('click', function() {
+        let product_id = $('#changeProduct').val() || 0;
+        let product_name = $('#product_name').val() || 0;
+        let purchase_unit = $('#purchase_unit').val() || 0;
+        let quantity = $('#productQuantity').val() || 0;
+        let purchase_price = $('#purchase_price').val() || 0;
+        let discount = $('#discount').val() || 0;
+        let quantityAmount = $('#quantityAmount').val() || 0;
+        let totalAmount = parseFloat($('#netTotalAmount').val()) || 0;
+
+        if (product_id && quantity > 0) {
+            let duplicate_found = false;
+            let existingRow;
+
+            $('#product_add tr').each(function() {
+                if ($(this).find('input[name="table_product_id[]"]').val() === product_id) {
+                    duplicate_found = true;
+                    existingRow = $(this);
+                    return false; // break out of loop if duplicate found
+                }
+            });
+
+            if (duplicate_found) {
+                // Update the existing row
+                let oldQuantity = parseFloat(existingRow.find('.table_quantity').val()) || 0;
+                let newQuantity = oldQuantity + parseFloat(quantity);
+                let oldDiscount = parseFloat(existingRow.find('.table_discount').val()) || 0;
+                let newDiscount = oldDiscount + parseFloat(discount || 0);
+                let oldAmount = parseFloat(existingRow.find('.cart_amount').text()) || 0;
+                let newAmount = oldAmount + parseFloat(quantityAmount || 0) - parseFloat(discount || 0);
+                    newAmount =  Math.round(newAmount);
+
+                //let newAmount = (newQuantity * purchase_price - newDiscount).toFixed(2);
+
+                // Update the row with the new quantity and new amount
+                existingRow.find('.table_quantity').val(newQuantity).next().val(newQuantity);
+                existingRow.find('.table_discount').val(newDiscount).next().val(newDiscount);
+                existingRow.find('.table_cart_amount').val(newAmount).next().val(newAmount);
+                existingRow.find('.quantity_text').text(newQuantity);
+                existingRow.find('.discount_text').text(newDiscount);
+                existingRow.find('.cart_amount').text(newAmount);
+
+                // Update the net total by adjusting for the difference between the old and new amounts
+                let netTotal = totalAmount - oldAmount + parseFloat(newAmount);
+                $('#netTotalAmount').val(netTotal.toFixed(2));
+            } else {
+                // Adding a new row if no duplicate is found
+                let totalAmountSum = quantityAmount;
+                let cartAmount = (totalAmountSum - discount).toFixed(2);
+                    cartAmount =  Math.round(cartAmount);
+                let finalAmount = (totalAmount + parseFloat(cartAmount)).toFixed(2);
+
+                $('#product_add').append(`
+                    <tr class="each_row" data-id="${id}">
+                        <td class="text-center">${id}</td>
+                        <td>${product_name}<input type="hidden" name="table_product_id[]" value="${product_id}"></td>
+                        <td class="text-center">${purchase_unit}</td>
+                        <td class="text-end"><span class="quantity_text">${quantity}</span><input type="hidden" class="table_quantity" name="table_product_quantity[]" value="${quantity}"></td>
+                        <td class="text-end">${purchase_price}<input type="hidden" class="table_price" name="table_product_price[]" value="${purchase_price}"></td>
+                        <td class="text-end"><span class="discount_text">${discount}</span><input type="hidden" class="table_discount" name="table_product_discount[]" value="${discount}"></td>
+                        <td id="cart${id}" class="text-end"><span class="cart_amount">${cartAmount}</span><input type="hidden" class="table_cart_amount" name="table_product_cart_amount[]" value="${cartAmount}"></td>
+                        <td class="text-center"><button type="button" data-id="${id}" class="add_product_delete btn btn-sm btn-danger py-1 px-3">X</button></td>
+                    </tr>
+                `);
+                id++;
+                $('#netTotalAmount').val(finalAmount);
+
+            }
+            // Clear the input fields after successfully adding the product
+            $('#changeProduct').val('');
+            $('#changeProduct').select2('open');
+
+            $('#product_name').val('');
+            $('#product_code').val('');
+            $('#purchase_unit').val('');
+            $('#purchase_price').val('');
+            $('#present_stock').val('');
+            $('#productQuantity').val('');
+            $('#quantityAmount').val('');
+
+            $('#discount').val('');
+            $('#percentageInput').val('');
+            $('#percentageType').val('1');
+
+            $('#percentageInputContainer').addClass('d-none');
+            $('#discount').prop('readonly', false);
+
+        } else {
+            alert(product_id ? "Please Input Quantity Number" : "Please Select Product");
+        }
+    });
+
+    // Event handler for changing the #productQuantity, #purchase_price
+    function onChangeCalculateTotalAmount() {
+        let quantity = $('#productQuantity').val();
+        let purchase_price = $('#purchase_price').val();
+
+        if (quantity && purchase_price) {
+            let totalAmount = quantity * purchase_price;
+                totalAmount = (totalAmount).toFixed(3);
+                // totalAmount = Math.round(totalAmount); // Round to nearest integer
+            $('#quantityAmount').val(totalAmount);
+        } else {
+            $('#quantityAmount').val(0);
+        }
+    }
+    $('#productQuantity, #purchase_price').on('keyup', onChangeCalculateTotalAmount);
+
+    // Event handler for changing the discount percentage type
+    $('#percentageType').on('change', function() {
+        $('#discount').val('');
+        if ($(this).val() === '2') {
+            $('#percentageInputContainer').removeClass('d-none');
+            $('#discount').prop('readonly', true);
+        } else {
+            $('#percentageInputContainer').addClass('d-none');
+            $('#discount').prop('readonly', false);
+        }
+    });
+
+    // Event handler for updating discount based on percentage input
+    $('#percentageInput').on('keyup', function() {
+        let percentageValue = $(this).val();
+        let totalAmount = parseFloat($('#quantityAmount').val());
+        let discountAmount = (percentageValue / 100) * totalAmount;
+
+        $('#discount').val(discountAmount.toFixed(2));
+    });
+
+    $('#product_add').on('click', function(e) {
+        let totalAmount = parseFloat($('#netTotalAmount').val()) || 0;
+        let cartAmount = 0;
+
+        if (e.target.matches('.add_product_delete')) {
+            const {
+                id
+            } = e.target.dataset;
+            const selector = `tr[data-id="${id}"]`;
+            const cartAmountElement = $('#cart' + id);
+            cartAmount = parseFloat(cartAmountElement.text()) || 0;
+
+            // Update totalAmount by subtracting cartAmount
+            totalAmount -= cartAmount;
+
+            // Remove the row
+            $(selector).remove();
+        }
+
+        // Update the netTotalAmount input
+        $('#netTotalAmount').val(totalAmount.toFixed(2));
+    });
+
+    $('#cart_product').on('keyup', 'input[name="table_product_quantity[]"]', function(e) {
+        var quantity = $(this).val();
+
+        let purchase_price = parseFloat($(this).closest('.each_row').find('input[name="table_product_price[]"]')
+            .val()) || 0;
+        let discount = parseFloat($(this).closest('.each_row').find('input[name="table_product_discount[]"]')
+            .val()) || 0;
+
+        let update_amount = (quantity * purchase_price) - discount;
+
+        let currentTotal = parseFloat($(this).closest('.each_row').find('.cart_amount').text()) || 0;
+
+        // Subtract the previous total amount of this row
+        let getAmount = parseFloat($('#netTotalAmount').val()) || 0;
+        let calculateNetTotal = update_amount - currentTotal;
+        let finalAmount = getAmount + calculateNetTotal;
+
+        // Update the total amount
+        $('#netTotalAmount').val(finalAmount);
+
+        // Update the cart amount for this row
+        $(this).closest('.each_row').find('.cart_amount').text(update_amount);
+    });
+
+    $('#changeSupplier').on('change', function() {
+        var acName = $(this).val();
+        if (acName) {
+            var url = '{{ route('supplierDetails', ['ac_name' => ':ac_name']) }}'.replace(':ac_name', acName);
+            console.log(url);
+            $.ajax({
+                url: url,
+                type: "GET",
+                data: {
+                    "_token": "{{ csrf_token() }}"
+                },
+                dataType: "json",
+                success: function(data) {
+                    if (data) {
+                        console.log('supplierDetails', data);
+                        $('.supplierInfo').removeClass('d-none');
+
+                        $('#jsdataerror').text('');
+                        $('#supplierAdd').text('Total Debit: ' + data.total_debits);
+                        $('#supplierAdd2').text('Total Credit: ' + data.total_credits);
+                        $('#supplierAdd3').text('Net Balance: ' + data.net_balance);
+                        $('#supplierAdd4').text('Mobile: ' + data.account_mobile);
+                        $('#supplierAdd5').text('Address: ' + data.account_address);
+                    } else {
+                        $('#jsdataerror').text('Not Found');
+                    }
+                },
+                error: function() {
+                    $('#jsdataerror').text('Error fetching data');
+                }
+            });
+        } else {
+            $('#jsdataerror').text('Not Found');
+        }
+    });
+
+    $('#givenAmount').on('keyup', function() {
+        var quantity = $('#givenAmount').val();
+        var netTotalAmount = $('#netTotalAmount').val();
+        var givenAmount = $('#givenAmount').val();
+        let returnAmount = (netTotalAmount - givenAmount).toFixed(2);
+        if (returnAmount >= 0) {
+            $('#dueOrReturn').text('Due');
+        } else {
+            $('#dueOrReturn').text('Return');
+        }
+        $('#returnAmount').val(returnAmount);
+    });
+
+    // Trigger the addProduct function on Enter key press
+    $('input').on('keypress', function(event) {
+        if (event.key === "Enter") {
+            $('#addProduct').click();
+        }
+    });
+
+    // paymentType on click sorting 
+    $('.paymentType').on('click', function() {
+        var paymentType = $(this).data('value');
+        var acListData;
+        let url;
+        // Show the appropriate element based on the selected option
+        if (paymentType === 'Bank') {
+            $('#bankDetails').removeClass('d-none');
+            $('#mobileBankDetails').addClass('d-none');
+            url = "{{ route('account_list', ['code' => ':code']) }}";
+            url = url.replace(':code', 100020004);
+        } else if (paymentType === 'mBank') {
+            $('#bankDetails').addClass('d-none');
+            $('#mobileBankDetails').removeClass('d-none');
+            url = "{{ route('account_list', ['code' => ':code']) }}";
+            url = url.replace(':code', 100020003);
+        } else if (paymentType === 'Cash') {
+            $('#bankDetails').addClass('d-none');
+            $('#mobileBankDetails').addClass('d-none');
+            url = "{{ route('account_list', ['code' => ':code']) }}";
+            url = url.replace(':code', 100020002);
+        }
+        // console.log(url);
+        $.ajax({
+            url: url,
+            type: "GET",
+            data: {
+                "_token": "{{ csrf_token() }}"
+            },
+            dataType: "json",
+            success: function(response) {
+                acListData = response.acList;
+                // console.log(acListData);
+                // Populate options in changeAccountsName select
+                $('#changeAccountsName').empty();
+
+                $('#changeAccountsName').append(
+                    '<option value="" selected>Select Account Name</option>');
+                if (acListData && Object.keys(acListData).length > 0) {
+                    $.each(acListData, function(id, accountName) {
+                        $('#changeAccountsName').append(
+                            `<option value="${id}">${accountName}</option>`);
+                    });
+                } else {
+                    $('#jsdataerror').text('Account names not found or empty.');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error fetching account names:', error);
+                $('#jsdataerror').text('Error fetching account names.');
+            }
+        });
+
+    }) 
+
+    // Event handler for when the chequeType = Cheque BankInfo Show
+    $('#chequeType').on('change', function() {
+        let chequeType = $(this).val();
+        if (chequeType == 'Cheque') {
+            $('#bankInfo').removeClass('d-none');  // Correct way to remove the 'd-none' class
+        }else{
+            $('#bankInfo').addClass('d-none');
+        }
+    });
+
+    // purchase success after pdf open 
+    var sessionInvoice = {!! json_encode(session('invoice')) !!};
+    if (sessionInvoice) {
+        window.open("{{ route('purchase_invoice_details_Pdf', '') }}/" + sessionInvoice, '_blank');
+    }
+</script>
