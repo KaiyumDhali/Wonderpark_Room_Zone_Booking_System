@@ -56,12 +56,12 @@
         data-control="select2"
         data-placeholder="Select Customer">
     <option></option>
-    @foreach ($customerAccounts as $c)
-        <option value="{{ $c->id }}"
-    {{ old('customer_id', $firstBooking->customer_id) == $c->id ? 'selected' : '' }}>
-    {{ $c->account_name }}
-</option>
-    @endforeach
+@foreach ($customerAccounts as $c)
+    <option value="{{ $c->id }}"
+        {{ old('customer_id', $firstBooking->customer_name ?? '') == $c->account_name ? 'selected' : '' }}>
+        {{ $c->account_name }}
+    </option>
+@endforeach
 </select>
 
         </div>
