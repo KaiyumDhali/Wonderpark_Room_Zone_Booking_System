@@ -403,17 +403,23 @@ $spots = Spot::where('status', 1)
 
 
     // ================= INVOICE NUMBER =================
-    $lastInvoice = SpotBooking::latest('id')->first();
-    $lastNumber = $lastInvoice ? intval(substr($lastInvoice->invoice_number, 4)) : 0;
-    $newInvoiceNumber = 'INV-' . str_pad($lastNumber + 1, 5, '0', STR_PAD_LEFT);
+    // $lastInvoice = SpotBooking::latest('id')->first();
+    // $lastNumber = $lastInvoice ? intval(substr($lastInvoice->invoice_number, 4)) : 0;
+    // $newInvoiceNumber = 'INV-' . str_pad($lastNumber + 1, 5, '0', STR_PAD_LEFT);
 
+      $salesNo = DB::table('invoiceno')->first('sales_no');
+            $getSalesNo = $salesNo->sales_no;
+            $salesNumber = 'INV' . str_pad($getSalesNo, 6, '0', STR_PAD_LEFT);
+            DB::table('invoiceno')->update([
+                'sales_no' => $getSalesNo + 1,
+            ]);
     // ================= SAVE BOOKINGS =================
     foreach ($items as $item) {
 
         // 🔹 Spot only
         if ($item['type'] === 'spot') {
             SpotBooking::create([
-                'invoice_number'   => $newInvoiceNumber,
+                'invoice_number'   => $salesNumber,
                 'spot_id'          => $item['id'],
                 'package_id'       => null,
                 'booking_date'     => $request->booking_date,
@@ -432,7 +438,7 @@ $spots = Spot::where('status', 1)
         // 🔹 Package (with or without spot)
         if ($item['type'] === 'package') {
             SpotBooking::create([
-                'invoice_number'   => $newInvoiceNumber,
+                'invoice_number'   => $salesNumber,
                 'spot_id'          => null,
                 'package_id'       => $item['id'],
                 'booking_date'     => $request->booking_date,
@@ -448,7 +454,7 @@ $spots = Spot::where('status', 1)
     if (!empty($additionalServices)) {
         foreach ($additionalServices as $service) {
             DB::table('spot_booking_details')->insert([
-                'invoice_number'         => $newInvoiceNumber,
+                'invoice_number'         => $salesNumber,
                 'additional_service_id'  => $service['service_id'],
                 'price'                  => $service['price'],
                 'quantity'               => $service['qty'] ?? 1,
@@ -488,7 +494,7 @@ $spots = Spot::where('status', 1)
     // Customer Dr
     FinanceTransaction::create([
         'company_code' => '01',
-        'invoice_no' => $newInvoiceNumber,
+        'invoice_no' => $salesNumber,
         'voucher_no' => $voucherNo,
         'voucher_date' => $request->booking_date,
         'acid' => $customerId,
@@ -504,7 +510,7 @@ $spots = Spot::where('status', 1)
     // Sales Cr
     FinanceTransaction::create([
         'company_code' => '01',
-        'invoice_no' => $newInvoiceNumber,
+        'invoice_no' => $salesNumber,
         'voucher_no' => $voucherNo,
         'voucher_date' => $request->booking_date,
         'acid' => $GLOBALS['SalesAccountID'],
@@ -522,7 +528,7 @@ $spots = Spot::where('status', 1)
 
         FinanceTransaction::create([
             'company_code' => '01',
-            'invoice_no' => $newInvoiceNumber,
+            'invoice_no' => $salesNumber,
             'voucher_no' => $voucherNo,
             'voucher_date' => $request->booking_date,
             'acid' => $customerId,
@@ -538,7 +544,7 @@ $spots = Spot::where('status', 1)
 
         FinanceTransaction::create([
             'company_code' => '01',
-            'invoice_no' => $newInvoiceNumber,
+            'invoice_no' => $salesNumber,
             'voucher_no' => $voucherNo,
             'voucher_date' => $request->booking_date,
             'acid' => $payAccountId,
@@ -562,7 +568,7 @@ $spots = Spot::where('status', 1)
 public function edit1($invoiceNumber)
 {
     $bookings = SpotBooking::where('invoice_number', $invoiceNumber)->get();
-//  dd($bookings);
+//   dd($bookings);
     if ($bookings->isEmpty()) {
         return redirect()->route('spot-bookings.index')
             ->with('error', 'Booking not found!');
@@ -576,9 +582,11 @@ public function edit1($invoiceNumber)
     $company = CompanySetting::where('status', 1)->first();
 // dd($packages);
     // Additional Services for this invoice
-    $services = DB::table('spot_booking_details')
-        ->where('invoice_number', $invoiceNumber)
-        ->get();
+   $services = DB::table('spot_booking_details')
+    ->where('invoice_number', $invoiceNumber)
+    ->get();
+
+$selectedServices = $services->pluck('additional_service_id')->toArray();
 
     // Calendar data for highlighting
     $calendarData = [];
@@ -586,7 +594,21 @@ public function edit1($invoiceNumber)
     $allBookings = SpotBooking::where('status', '!=', 2)
     ->where('invoice_number', '!=', $invoiceNumber) // ✅ exclude current invoice
     ->get();
+
     $currentInvoiceSpots = $bookings->pluck('spot_id')->map(fn($id)=> (int)$id)->toArray();
+
+    $receivedAmount = FinanceTransaction::where('invoice_no', $invoiceNumber)
+    ->where('status', 0) // active transactions
+    ->where('balance_type', 'Cr') 
+   ->whereNotNull('payment_type')
+
+    ->sum('amount');
+$financeTransaction = DB::table('finance_transactions')
+    ->where('invoice_no', $invoiceNumber)
+    ->where('balance_type', 'Dr')
+    ->whereNotNull('payment_type')
+    ->first();
+// dd($financeTransaction);
     foreach ($allBookings as $b) {
         $date = $b->booking_date;
         if (!isset($calendarData[$date])) {
@@ -600,11 +622,14 @@ public function edit1($invoiceNumber)
         'invoiceNumber' => $invoiceNumber,
         'booking' => $bookings,
         'firstBooking' => $firstBooking,
+        'receivedAmount' => $receivedAmount,
+        'financeTransaction' => $financeTransaction,
         'services' => $services,
         'currentInvoiceSpots' => $currentInvoiceSpots,
         'discountLimit' => $company->discount_limit ?? 5,
         'multipleSpotDiscountLimit' => $company->multiple_spot_discount_limit ?? 5,
         'spots' => $spots,
+         'selectedServices' => $selectedServices,
         'packages' => $packages,
         'additionalServices' => AdditionalService::where('status', 1)->get(),
         'customers' => Customer::where('status', 1)->get(),
@@ -1421,69 +1446,191 @@ public function spotReport(Request $request)
     ));
 }
 
-public function index3(Request $request)
-    {
-        $zones = Spot::all(); // তোমার সব zone
-        $company = CompanySetting::first();
-        $gallery_footer = Gallery::orderBy('id', 'asc')->take(6)->get();
-        $availability = [];
 
-        if ($request->check_in && $request->check_out) {
-
-            $start = Carbon::parse($request->check_in);
-            $end   = Carbon::parse($request->check_out);
-
-            foreach ($zones as $zone) {
-
-                $bookings = SpotBooking::where('spot_id', $zone->id)
-                    ->whereBetween('booking_date', [$start, $end])
-                    ->where('status', 0) // active booking
-                    ->exists();
-
-                $availability[$zone->id] = $bookings ? 'booked' : 'available';
-            }
-        }
-
-        return view('pages.frontend.zone_availability', compact('zones','availability','company','gallery_footer'));
+public function checkAvailability(Request $request)
+{
+    if($request->view_type == 'room'){
+        return redirect()->route('frontend.rooms', $request->only('check_in','check_out'));
+    } elseif($request->view_type == 'zone'){
+        return redirect()->route('zone.availability', $request->only('check_in','check_out'));
     }
 
-    // SpotBookingController.php
-public function bookSpot(Request $request){
+    return back()->with('error','Please select view type.');
+}
+public function index3(Request $request)
+{
+    $zones = Spot::all();
+    $company = CompanySetting::first();
+    $gallery_footer = Gallery::orderBy('id', 'asc')->take(6)->get();
 
+    $availability = [];
+
+    if ($request->check_in && $request->check_out) {
+
+        $start = Carbon::parse($request->check_in);
+        $end   = Carbon::parse($request->check_out);
+
+        foreach ($zones as $zone) {
+
+            $booking = SpotBooking::where('spot_id', $zone->id)
+                ->whereBetween('booking_date', [$start, $end])
+                ->where('status', 0)
+                ->first();
+
+            if($booking){
+
+                $availability[$zone->id] = [
+                    'status' => 'booked',
+                    'date' => $booking->booking_date
+                ];
+
+            }else{
+
+                $availability[$zone->id] = [
+                    'status' => 'available',
+                    'date' => null
+                ];
+            }
+        }
+    }
+
+    return view('pages.frontend.zone_availability',
+        compact('zones','availability','company','gallery_footer')
+    );
+}
+    // SpotBookingController.php
+public function bookSpot(Request $request)
+{
     $validated = $request->validate([
         'spot_id' => 'required|exists:spots,id',
         'customer_name' => 'required|string',
         'customer_mobile' => 'required|string',
         'booking_date' => 'required|date',
-        'total_persons' => 'required|integer|min:1',
+        // 'total_persons' => 'required|integer|min:1',
     ]);
 
-    // 🔥 Spot থেকে data নিয়ে আসি
-    $spot = Spot::findOrFail($validated['spot_id']);
+    DB::beginTransaction();
 
-    // 🔥 invoice generate
-    $lastInvoice = SpotBooking::latest('id')->first();
-    $lastNumber = $lastInvoice ? intval(substr($lastInvoice->invoice_number, 4)) : 0;
-    $newInvoiceNumber = 'INV-' . str_pad($lastNumber + 1, 5, '0', STR_PAD_LEFT);
+    try {
+        // 🔥 Spot data
+        $spot = Spot::findOrFail($validated['spot_id']);
 
-    // 🔥 Booking create
-    $booking = SpotBooking::create([
-        'invoice_number'   => $newInvoiceNumber,
-        'spot_id'          => $spot->id,
-        'customer_name'    => $validated['customer_name'],
-        'customer_mobile'  => $validated['customer_mobile'],
-        'booking_date'     => $validated['booking_date'],
-        // 'total_persons'    => $validated['total_persons'],
+        // 🔥 Invoice generate using sales_no
+        $salesNo = DB::table('invoiceno')->first('sales_no');
+        $getSalesNo = $salesNo->sales_no ?? 0;
+        $newInvoiceNumber = 'INV' . str_pad($getSalesNo, 6, '0', STR_PAD_LEFT);
 
-        // ✅ spots table থেকে নিচ্ছি
-        'price'            => $spot->price,
-        'total_persons'     => $spot->max_capacity,
+        // Update sales_no for next invoice
+        DB::table('invoiceno')->update([
+            'sales_no' => $getSalesNo + 1,
+        ]);
 
-        'status'           => 0,
-        'total_price'      => $spot->price, // চাইলে multiply করতে পারো
-    ]);
+        // ================= CUSTOMER & FINANCE ACCOUNT =================
+        $financeAccount = FinanceAccount::updateOrCreate(
+            ['account_name' => $validated['customer_name']],
+            [
+                'financegroup_id' => '7',
+                'account_group_code' => $GLOBALS['CustomerGroupCode'],
+                'account_mobile' => $validated['customer_mobile'],
+                'account_address' => $request['customer_address'],
+                'account_company_code' => '01',
+                'account_status' => 1,
+                'account_done_by' => auth()->user()->name,
+            ]
+        );
 
-    return redirect()->back()->with('success', 'Booking successful!');
+        // 🔥 Customer create/update
+        $customer = Customer::updateOrCreate(
+            ['ac_id' => $financeAccount->id],
+            [
+                'customer_type' => 1,
+                'customer_name' => $validated['customer_name'],
+                'customer_address' => $request['customer_address'],
+                'customer_mobile' => $validated['customer_mobile'],
+                'status' => 1,
+                'done_by' => auth()->user()->name,
+            ]
+        );
+
+        $customerId = $financeAccount->id;
+        $customerName = $financeAccount->account_name;
+        $customerMobile = $financeAccount->account_mobile ?? 'N/A';
+
+        // 🔥 Booking create
+        $booking = SpotBooking::create([
+            'invoice_number'   => $newInvoiceNumber,
+            'spot_id'          => $spot->id,
+            'customer_name'    => $customerName,
+            'customer_mobile'  => $customerMobile,
+            'booking_date'     => $validated['booking_date'],
+            'total_persons'    => $spot->max_capacity,
+            'total_price'      => $spot->price,
+            'status'           => 0,
+            'discount_percent' => 0,
+            'spot_discount_percent' => 0,
+            'discount_amount' => 0,
+            'Booking_status' => 1,
+            'check_in_datetime' => '10:59:59',
+            'check_out_datetime' => '10:59:59',
+            'invoice_adjustment_discount' => 0,
+        ]);
+
+        // ================= FINANCE TRANSACTIONS =================
+        $done_by = auth()->user()->name;
+        $netTotalAmount = $spot->price;
+
+        // Voucher
+        $voucher = DB::table('invoiceno')->first('voucher_no');
+        $voucherNo = '01SV' . str_pad($voucher->voucher_no, 6, '0', STR_PAD_LEFT);
+
+        DB::table('invoiceno')->update([
+            'voucher_no' => $voucher->voucher_no + 1
+        ]);
+
+        // Sales Account Name
+        $salesAccountName = DB::table('finance_accounts')
+            ->where('id', $GLOBALS['SalesAccountID'])
+            ->value('account_name') ?? 'Sales Account';
+
+        // ================= Insert Dr =================
+        FinanceTransaction::create([
+            'company_code' => '01',
+            'invoice_no' => $newInvoiceNumber,
+            'voucher_no' => $voucherNo,
+            'voucher_date' => $validated['booking_date'],
+            'acid' => $customerId,
+            'to_acc_name' => $salesAccountName, // Cr account name
+            'type' => 'SV',
+            'amount' => $netTotalAmount,
+            'balance_type' => 'Dr',
+            'transaction_date' => $validated['booking_date'],
+            'transaction_by' => $done_by,
+            'done_by' => $done_by,
+        ]);
+
+        // ================= Insert Cr =================
+        FinanceTransaction::create([
+            'company_code' => '01',
+            'invoice_no' => $newInvoiceNumber,
+            'voucher_no' => $voucherNo,
+            'voucher_date' => $validated['booking_date'],
+            'acid' => $GLOBALS['SalesAccountID'],
+            'to_acc_name' => $customerName, // Dr account name
+            'type' => 'SV',
+            'amount' => $netTotalAmount,
+            'balance_type' => 'Cr',
+            'transaction_date' => $validated['booking_date'],
+            'transaction_by' => $done_by,
+            'done_by' => $done_by,
+        ]);
+
+        DB::commit();
+
+        return redirect()->back()->with('success', 'Booking successful!');
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return back()->with('error', $e->getMessage());
+    }
 }
-    
 }

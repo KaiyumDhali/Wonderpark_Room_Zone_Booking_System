@@ -4,8 +4,9 @@
 <style>
 .map-wrapper{
     position: relative;
-    max-width: 1200px;
+    max-width: 1600px;
     margin:auto;
+    margin-top: -70px;
 }
 .map-wrapper img{ 
     width:100%; 
@@ -75,18 +76,61 @@ path.booked{
     font-size:25px;
     cursor:pointer;
 }
+.zone-label{
+    position:absolute;
+    background:#ff0000;
+    color:#fff;
+    font-size:12px;
+    padding:5px 8px;
+    border-radius:4px;
+    transform:translate(-50%,-120%);
+    pointer-events:none;
+    font-weight:600;
+    white-space:nowrap;
+}
 
+/* flag arrow */
+.zone-label::after{
+    content:"";
+    position:absolute;
+    left:50%;
+    bottom:-6px;
+    transform:translateX(-50%);
+    width:0;
+    height:0;
+    border-left:6px solid transparent;
+    border-right:6px solid transparent;
+    border-top:6px solid #ff0000;
+}
 @keyframes fadeIn{
     from{transform:scale(0.8);opacity:0;}
     to{transform:scale(1);opacity:1;}
 }
+.zone-container {
+    background-image: url("{{ asset('images/map/istockphoto-155415994-612x612.jpg') }}");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    padding: 50px 0;
+}
+.date-range-box{
+    margin-top:40px;   /* যত নিচে নামাতে চাও */
+}
 </style>
 
-<div class="container mt-5">
-    <h2 class="text-center mb-5">Zone Availability</h2>
-
+<div class=" mt-5 zone-container" >
+@if(request('check_in') && request('check_out'))
+<div class="text-center mb-4 date-range-box">
+    <span class="badge bg-primary p-3" style="font-size:16px;">
+        Showing Availability From 
+        {{ \Carbon\Carbon::parse(request('check_in'))->format('d M Y') }} 
+        To 
+        {{ \Carbon\Carbon::parse(request('check_out'))->format('d M Y') }}
+    </span>
+</div>
+@endif
     <div class="map-wrapper">
-        <img src="{{ asset('images/map/map.jpeg') }}" alt="Map">
+        <img src="{{ asset('images/map/map.png') }}" alt="Map">
         <div class="map-overlay">
             {!! file_get_contents(public_path('images/map/zones.svg')) !!}
         </div>
@@ -113,16 +157,20 @@ path.booked{
             <label>Mobile</label>
             <input type="text" name="customer_mobile" class="form-control" required>
         </div>
+        <div class="mb-3">
+            <label>Address</label>
+            <input type="text" name="customer_address" class="form-control" required>
+        </div>
 
         <div class="mb-3">
             <label>Booking Date</label>
             <input type="date" name="booking_date" class="form-control" required>
         </div>
 
-        <div class="mb-3">
+        <!-- <div class="mb-3">
             <label>Total Persons</label>
             <input type="number" name="total_persons" class="form-control" required>
-        </div>
+        </div> -->
 
         <button type="submit" class="theme-btn btn-style-one w-100">Book Now</button>
     </form>
@@ -148,32 +196,54 @@ $zoneStatusArray = $zones->mapWithKeys(function($zone) use ($availability) {
 document.addEventListener("DOMContentLoaded", function() {
 
     var zoneMap = @json($zoneMapArray);
-    var zoneStatus = @json($zoneStatusArray);
+    var zoneStatus = @json($availability);
 
     var modalEl = document.getElementById('customModal');
     var closeBtn = document.querySelector('.close-modal');
 
-    for (var dbId in zoneStatus){
+   for (var dbId in zoneStatus){
 
-        var svgId = zoneMap[dbId];
-        if(!svgId) continue;
+    var svgId = zoneMap[dbId];
+    if(!svgId) continue;
 
-        var zone = document.getElementById(svgId);
-        if(!zone) continue;
+    var zone = document.getElementById(svgId);
+    if(!zone) continue;
 
-        zone.classList.add(zoneStatus[dbId]);
+    zone.classList.add(zoneStatus[dbId].status);
 
-        if(zoneStatus[dbId] === 'available'){
+    if(zoneStatus[dbId].status === 'booked'){
 
-            zone.addEventListener('click', (function(id){
-                return function(){
-                    document.getElementById('spot_id').value = id;
-                    modalEl.style.display = "flex";
-                }
-            })(dbId));
+        var bbox = zone.getBBox();
 
-        }
+        var label = document.createElement("div");
+        label.className = "zone-label";
+
+        label.innerHTML = "Booked<br>" + zoneStatus[dbId].date;
+
+        label.style.left = (bbox.x + bbox.width/2) + "px";
+        label.style.top = (bbox.y + bbox.height/2) + "px";
+
+        document.querySelector(".map-wrapper").appendChild(label);
     }
+
+    if(zoneStatus[dbId].status === 'available'){
+
+        zone.style.pointerEvents = "all";
+
+        zone.addEventListener("click", (function(id){
+
+            return function(){
+
+                document.getElementById('spot_id').value = id;
+
+                modalEl.style.display = "flex";
+
+            }
+
+        })(dbId));
+    }
+
+}
 
     closeBtn.onclick = function(){
         modalEl.style.display = "none";

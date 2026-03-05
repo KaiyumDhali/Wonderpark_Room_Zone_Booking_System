@@ -111,6 +111,9 @@ class FrontendBookingController extends Controller
             'booking_no' => $bookingNumber,
             'check_in_date' => $request->arrival_date,
             'check_out_date' => $request->departure_date,
+            'Booking_status' => 1,
+            'check_in_datetime' => '10:59:59',
+            'check_out_datetime' => '10:59:59',
         ]);
 
         // Return a success message

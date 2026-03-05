@@ -211,6 +211,8 @@ Route::get('spot-bookings/{invoice}/edit', [SpotBookingController::class,'edit1'
 Route::put('spot-bookings/{invoice}', [SpotBookingController::class,'update1'])->name('spot-bookings.update1');
 Route::get('/zone-availability', [SpotBookingController::class, 'index3'])
     ->name('zone.availability');
+Route::get('/frontend.check_availability', [SpotBookingController::class, 'checkAvailability'])
+    ->name('frontend.check_availability');
 // web.php
 Route::post('/book-spot', [SpotBookingController::class, 'bookSpot'])->name('frontend.book.spot');
 

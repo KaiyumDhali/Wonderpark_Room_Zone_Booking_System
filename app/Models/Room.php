@@ -31,4 +31,8 @@ class Room extends Model
     {
         return $this->hasMany(related: RoomDetail::class, foreignKey: 'room_id');
     }
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class, 'room_id');
+    }
 }

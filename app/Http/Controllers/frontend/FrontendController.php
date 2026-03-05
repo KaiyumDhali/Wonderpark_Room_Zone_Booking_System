@@ -21,6 +21,7 @@ use App\Models\Page;
 use App\Models\Ride;
 use App\Models\Team;
 use App\Models\Spot;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
@@ -75,19 +76,33 @@ class FrontendController extends Controller
     //     return view('pages.frontend.room', compact('rooms', 'company'));
     // }
 
-    public function room()
-    {
-        // $rooms = Room::with('room_type')->paginate(10);
-        $rooms = Room::with('room_type')
-            ->orderBy('room_order', 'ASC')
-            ->paginate(10);
+public function room(Request $request)
+{
+    $query = Room::with('room_type')->orderBy('room_order', 'ASC');
 
-        $company = CompanySetting::first();
-        $banner_image = Page::where('status', '=', 1)->where('id', 6)->first();
-        $gallery_footer = Gallery::orderBy('id', 'asc')->take(6)->get();
-        return view('pages.frontend.room', compact('rooms', 'company', 'banner_image', 'gallery_footer'));
+    if($request->has(['check_in','check_out'])){
+        $checkIn = Carbon::parse($request->check_in);
+        $checkOut = Carbon::parse($request->check_out);
+
+        $query->whereDoesntHave('bookings', function($q) use ($checkIn, $checkOut){
+            $q->where('Booking_status',1)
+              ->where(function($b) use ($checkIn, $checkOut){
+                  $b->whereNotNull('check_in_date')
+                    ->whereNotNull('check_out_date')
+                    ->where('check_in_date', '<=', $checkOut)
+                    ->where('check_out_date', '>=', $checkIn);
+              });
+        });
     }
 
+    $rooms = $query->paginate(10);
+
+    $company = CompanySetting::first();
+    $banner_image = Page::where('status',1)->where('id',6)->first();
+    $gallery_footer = Gallery::orderBy('id','asc')->take(6)->get();
+
+    return view('pages.frontend.room', compact('rooms','company','banner_image','gallery_footer'));
+}
 
     public function roomDetails($id)
     {

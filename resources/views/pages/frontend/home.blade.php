@@ -269,40 +269,40 @@ select.booking-input {
         <div class="stable-booking-wrapper">
     <div class="auto-container">
         <div class="stable-booking-box">
-           <form action="{{ route('zone.availability') }}" method="GET">
-                <div class="row align-items-center">
+    <form action="{{ route('frontend.check_availability') }}" method="GET">
+    <div class="row align-items-center">
 
-                    <!-- Check In -->
-                    <div class="col-lg-3 col-md-6 mb-3">
-                        <label>Check In</label>
-                        <input type="date" name="check_in" class="form-control booking-input" required>
-                    </div>
+        <!-- Check In -->
+        <div class="col-lg-3 col-md-6 mb-3">
+            <label>Check In</label>
+            <input type="date" name="check_in" class="form-control booking-input" required>
+        </div>
 
-                    <!-- Check Out -->
-                    <div class="col-lg-3 col-md-6 mb-3">
-                        <label>Check Out</label>
-                        <input type="date" name="check_out" class="form-control booking-input" required>
-                    </div>
+        <!-- Check Out -->
+        <div class="col-lg-3 col-md-6 mb-3">
+            <label>Check Out</label>
+            <input type="date" name="check_out" class="form-control booking-input" required>
+        </div>
 
-                    <!-- Static Option Dropdown -->
-                    <div class="col-lg-3 col-md-6 mb-3">
-                        <label>View Type</label>
-                        <select name="view_type" class=" form-control booking-input" required>
-                            <option value="">Select Option</option>
-                            <option value="room">Room</option>
-                            <option value="zone">Zone</option>
-                        </select>
-                    </div>
+        <!-- View Type -->
+        <div class="col-lg-3 col-md-6 mb-3">
+            <label>View Type</label>
+            <select name="view_type" class="form-control booking-input" required>
+                <option value="">Select Option</option>
+                <option value="room" {{ request('view_type')=='room' ? 'selected' : '' }}>Room</option>
+                <option value="zone" {{ request('view_type')=='zone' ? 'selected' : '' }}>Zone</option>
+            </select>
+        </div>
 
-                    <!-- Button -->
-                    <div class="col-lg-3 col-md-12 mt-3">
-                        <button type="submit" class="btn booking-btn w-100 text-white">
-                            Check Availability
-                        </button>
-                    </div>
+        <!-- Button -->
+        <div class="col-lg-3 col-md-12 mt-3">
+            <button type="submit" class="btn booking-btn w-100 text-white">
+                Check Availability
+            </button>
+        </div>
 
-                </div>
-            </form>
+    </div>
+</form>
         </div>
     </div>
 </div>

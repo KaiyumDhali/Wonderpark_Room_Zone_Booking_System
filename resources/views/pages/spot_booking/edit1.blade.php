@@ -11,6 +11,8 @@
     const editBooking = @json($firstBooking);
     const editItems = @json($firstBooking->items ?? []);
     let currentInvoiceSpots = @json($currentInvoiceSpots ?? []);
+    const editBookings = @json($booking);
+    const editServices = @json($services->pluck('additional_service_id')->toArray());
 </script>
 
 <form action="{{ route('spot-bookings.update1', $firstBooking->invoice_number) }}" method="POST">
@@ -79,25 +81,25 @@
 
 
                 {{-- Account --}}
-                <div class="col-md-3">
-                    <label class="shad-label required">
-                        <i class="fa fa-credit-card me-2 text-primary"></i>
-                        Receive Account Type
-                    </label>
-                    <select id="changeAccountsName"
-                            class="form-control shad-input"
-                            name="receive_account"
-                            required data-control="select2"
-                            data-placeholder="Select Payment Account">
-                        <option></option>
-                        @foreach ($toAccounts as $acc)
-                           <option value="{{ $acc->id }}"
-    {{ old('receive_account', $firstBooking->receive_account) == $acc->id ? 'selected' : '' }}>
-    {{ $acc->account_name }}
-</option>
-                        @endforeach
-                    </select>
-                </div>
+            <div class="col-md-3">
+    <label class="shad-label required">
+        <i class="fa fa-credit-card me-2 text-primary"></i>
+        Receive Account Type
+    </label>
+    <select id="changeAccountsName"
+            class="form-control shad-input"
+            name="receive_account"
+            required data-control="select2"
+            data-placeholder="Select Payment Account">
+        <option></option>
+        @foreach ($toAccounts as $acc)
+            <option value="{{ $acc->id }}"
+                {{ old('receive_account', $financeTransaction->acid ?? $firstBooking->receive_account) == $acc->id ? 'selected' : '' }}>
+                {{ $acc->account_name }}
+            </option>
+        @endforeach
+    </select>
+</div>
 
                 {{-- Amount --}}
                 <div class="col-md-2">
@@ -105,9 +107,9 @@
                         <i class="fa fa-money-bill me-2 text-primary"></i>
                         Receive Amount
                     </label>
-                   <input type="number"
+                  <input type="number"
        name="receive_amount"
-       value="{{ old('receive_amount', $firstBooking->receive_amount) }}">
+       value="{{ old('receive_amount', $receivedAmount) }}">
                 </div>
 
                 {{-- Status --}}
@@ -270,36 +272,41 @@
                         </tr>
                     </thead>
                     <tbody>
-                    @foreach ($additionalServices as $service)
-                        <tr class="service-row">
-                            <td class="fw-semibold">{{ $service->title }}</td>
+                   @foreach ($additionalServices as $service)
+<tr class="service-row">
+    <td class="fw-semibold">{{ $service->title }}</td>
 
-                            <td>
-                                <input type="number"
-                                    class="form-control shad-input-sm price"
-                                    value="{{ $service->price }}"
-                                    min="0"
-                                    @if($service->editable_status != 1) readonly @endif>
-                            </td>
+    <td>
+        <input type="number"
+            class="form-control shad-input-sm price"
+            value="{{ $service->price }}"
+            min="0"
+            @if($service->editable_status != 1) readonly @endif>
+    </td>
 
-                            <td>
-                                <div class="qty-wrap">
-                                    <button type="button" class="qty-btn minus">-</button>
-                                    <input type="number" class="form-control shad-input-sm qty"
-                                        value="1" min="1">
-                                    <button type="button" class="qty-btn plus">+</button>
-                                </div>
-                            </td>
+    <td>
+        <div class="qty-wrap">
+            <button type="button" class="qty-btn minus">-</button>
+            <input type="number" class="form-control shad-input-sm qty"
+                value="{{ $services->firstWhere('additional_service_id', $service->id)->quantity ?? 1 }}"
+                min="1">
+            <button type="button" class="qty-btn plus">+</button>
+        </div>
+    </td>
 
-                            <td class="fw-bold text-primary">৳ <span class="row-total">0</span></td>
+    <td class="fw-bold text-primary">৳ <span class="row-total">
+        {{ $services->firstWhere('additional_service_id', $service->id) ? 
+           $services->firstWhere('additional_service_id', $service->id)->total_price : 0 }}
+    </span></td>
 
-                            <td class="text-center">
-                                <input type="checkbox" class="form-check-input service-check"
-                                    data-id="{{ $service->id }}"
-                                    data-title="{{ $service->title }}">
-                            </td>
-                        </tr>
-                    @endforeach
+    <td class="text-center">
+        <input type="checkbox" class="form-check-input service-check"
+            data-id="{{ $service->id }}"
+            data-title="{{ $service->title }}"
+            {{ in_array($service->id, $selectedServices) ? 'checked' : '' }}>
+    </td>
+</tr>
+@endforeach
                     </tbody>
                 </table>
                  <div class="total-row mt-5">
@@ -358,18 +365,18 @@
                         </span>
                         <span class="grand-total">৳ <span id="grandTotal1">0</span></span>
                     </div>
-                <div class="row">
-                 <div class="text-danger col-md-12 d-flex align-items-center justify-content-between" id="discountRow">
-                    <div>
-                        <span>Discount (<span id="discountLabel">0</span>%)</span>
-                        <input type="number"
-                            id="discountPercent"
-                            class="ps-0 ms-2 shad-input-sm1 text-end"
-                            value="0"
-                            min="0" max="{{ $discountLimit }}">
+                    <div class="row">
+                    <div class="text-danger col-md-12 d-flex align-items-center justify-content-between" id="discountRow">
+                        <div>
+                            <span>Discount (<span id="discountLabel">0</span>%)</span>
+                            <input type="number"
+                                id="discountPercent"
+                                class="ps-0 ms-2 shad-input-sm1 text-end"
+                                value="0"
+                                min="0" max="{{ $discountLimit }}">
+                        </div>
+                        <span id="discountAmountText">৳ 0</span>
                     </div>
-                    <span id="discountAmountText">৳ 0</span>
-                </div>
 
               
                     <div class="col-md-12 d-flex justify-content-between">
@@ -394,10 +401,10 @@
 
                     <input type="hidden" name="discount_amount" id="discount_amount" value="0">
 
- <input type="hidden" 
-       name="invoice_adjustment_discount" 
-       id="invoice_adjustment_discount" 
-       value="0">
+                    <input type="hidden" 
+                        name="invoice_adjustment_discount" 
+                        id="invoice_adjustment_discount" 
+                        value="0">
 
                     <div class="summary-total mt-3">
                         <span class=" fw-semibold">
@@ -1007,7 +1014,30 @@ function formatMoney(num){
 /* ================= CALENDAR ================= */
 document.addEventListener('DOMContentLoaded', function(){
 
-    // ===== INITIALIZE CALENDAR =====
+  const toggle = document.getElementById('toggleServices');
+    const card   = document.getElementById('additionalServicesCard');
+
+    if(toggle && card){
+        if(editServices && editServices.length > 0){
+            toggle.checked = true;           // ✅ switch ON
+            card.classList.remove('d-none'); // ✅ show card
+        }
+
+        toggle.addEventListener('change', function(){
+            if(this.checked){
+                card.classList.remove('d-none');
+            }else{
+                card.classList.add('d-none');
+                document.querySelectorAll('.service-check').forEach(c=>c.checked=false);
+                serviceTotal = 0;
+                document.getElementById('additional_services').value = '[]';
+                updateServices();
+            }
+        });
+    }
+
+
+// ===== INITIALIZE CALENDAR =====
     const calendar = new FullCalendar.Calendar(
         document.getElementById('spot_booking_calendar'), {
         initialView:'dayGridMonth',
@@ -1074,6 +1104,38 @@ document.addEventListener('DOMContentLoaded', function(){
         // এখন call renderSelected & renderSpotsButtons
         renderSelected();
         renderSpotsButtons();
+         if(typeof editBooking !== 'undefined' && editBooking){
+
+        // === Discount Percent ===
+        discountPercent = parseFloat(editBooking.discount_percent) || 0;
+        document.getElementById('discountPercent').value = discountPercent;
+        document.getElementById('discountLabel').innerText = discountPercent;
+        document.getElementById('discount_percent').value = discountPercent;
+
+        // === Invoice Adjustment Discount ===
+        manualDiscountAmount = parseFloat(editBooking.invoice_adjustment_discount) || 0;
+        useManualDiscount = manualDiscountAmount > 0;
+
+        const invoiceRow = document.getElementById('invoiceAdjustmentRow');
+        const input = document.getElementById('discountAmountInput');
+        const text = document.getElementById('invoiceAdjustmentAmount');
+
+        if(manualDiscountAmount > 0){
+            invoiceRow.classList.remove('d-none');
+            input.classList.remove('d-none');
+            input.disabled = false;
+            input.value = manualDiscountAmount.toFixed(2);
+            text.innerText = manualDiscountAmount.toFixed(2);
+        } else {
+            invoiceRow.classList.add('d-none');
+            input.value = 0;
+            text.innerText = '0';
+        }
+
+        // === recalc all totals ===
+        updateSummary(); // এই function spots, packages, services সব হিসাব করে
+    }
+
         if(typeof currentInvoiceSpots !== 'undefined' && currentInvoiceSpots.length>0){
             currentInvoiceSpots.forEach(spotId=>{
                 const spot = spots.find(s=>parseInt(s.id) === parseInt(spotId));
@@ -1093,7 +1155,7 @@ document.addEventListener('DOMContentLoaded', function(){
             renderSpotsButtons();
                 // ===== EDIT MODE =====
                 if(typeof editBooking !== 'undefined' && editBooking){
-
+                console.log(editItems);
                     const bookingDateStr = editBooking.booking_date;
 
                     if(bookingDateStr){
@@ -1124,9 +1186,10 @@ document.addEventListener('DOMContentLoaded', function(){
                         }
                     }
                 });
-recalcCapacity();
+            recalcCapacity();
         // THEN render spots for that date
         if(bookingDateStr) renderSpots(bookingDateStr);
+
 
         // Force card visible
         const card = document.getElementById('selectedPackagesCard');
@@ -1135,8 +1198,12 @@ recalcCapacity();
         }
 
         // Restore package
-        const pkg = editItems.find(i=>i.type === 'package');
-        if(pkg) tickedPackage = {id: pkg.id};
+        // Restore package
+const pkgRow = editBookings.find(b => b.package_id);
+
+if(pkgRow){
+    tickedPackage = {id: parseInt(pkgRow.package_id)};
+}
 
         // Restore services
         editItems.forEach(item=>{
@@ -1152,6 +1219,7 @@ recalcCapacity();
             }
         });
 
+       renderSelected();        // add this
         renderPackagesByCapacity();
         updateServices();
         updateSummary();
@@ -1273,12 +1341,12 @@ function renderPackagesByCapacity(){
 
     let validPackages = packages.filter(p => parseInt(p.persons) <= totalCapacity);
 
-    // ===== EDIT MODE OVERRIDE =====
+    // EDIT MODE OVERRIDE
     if(typeof editBooking !== 'undefined' && editBooking){
         const pkg = editItems.find(i => i.type === 'package');
-        if(pkg && !validPackages.find(p => p.id === pkg.id)){
-            const pkgObj = packages.find(p => p.id === pkg.id);
-            if(pkgObj) validPackages.push(pkgObj); // ✅ force add
+        if(pkg && !validPackages.find(p => parseInt(p.id) === parseInt(pkg.id))){
+            const pkgObj = packages.find(p => parseInt(p.id) === parseInt(pkg.id));
+            if(pkgObj) validPackages.push(pkgObj);
         }
     }
 
@@ -1288,7 +1356,22 @@ function renderPackagesByCapacity(){
     }
 
     validPackages.forEach(pkg => {
-        const selected = tickedPackage?.id === pkg.id;
+
+        let selected = false;
+
+if(tickedPackage && parseInt(tickedPackage.id) === parseInt(pkg.id)){
+    selected = true;
+}
+
+// edit mode fallback
+if(typeof editBooking !== 'undefined' && editBooking){
+    const editPkg = editItems.find(i => i.type === 'package');
+    if(editPkg && parseInt(editPkg.id) === parseInt(pkg.id)){
+        selected = true;
+        tickedPackage = {id: parseInt(pkg.id)};
+    }
+}
+
         grid.insertAdjacentHTML('beforeend', `
             <div class="col-md-2">
                 <div class="pkg-btn ${selected?'selected':''}" onclick="selectPackage(${pkg.id})">
